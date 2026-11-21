@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Tavirah OS — Vision to Reality</title>
   <meta name="theme-color" content="#09090b" />
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 128 128'%3E%3Crect width='128' height='128' rx='28' fill='%2309090b'/%3E%3Cpath d='M30 34h68v14H71v48H57V48H30V34z' fill='%23f59e0b'/%3E%3Ccircle cx='94' cy='88' r='9' fill='%23ffffff'/%3E%3C/svg%3E" />
   <link rel="manifest" href="./manifest.json" />
   <link rel="stylesheet" href="./styles.css" />
 </head>
@@ -29,7 +30,7 @@
       <form id="auth-form">
         <div id="signup-name-field" class="field hidden">
           <label for="auth-name">Builder Name / Alias</label>
-          <input id="auth-name" type="text" placeholder="e.g. Addi, Maya, Builder_01" />
+          <input id="auth-name" type="text" maxlength="30" placeholder="e.g. Addi, Maya, Builder_01" />
         </div>
         <div class="field">
           <label for="auth-email">Email</label>
@@ -95,12 +96,18 @@
         <div class="page-header">
           <div>
             <h1>Daily Command Center</h1>
-            <p class="muted small">Convert one piece of your vision into physical reality today.</p>
+            <p class="muted small">Follow the 3 daily steps below to convert your vision into physical proof.</p>
           </div>
           <div style="display:flex; gap:8px; flex-wrap:wrap;">
             <button id="edit-vision-btn" class="btn btn-secondary btn-sm">Edit North Star</button>
             <button id="mobile-unblock-btn" class="btn btn-danger btn-sm">Stuck Right Now?</button>
           </div>
+        </div>
+
+        <div class="guide-strip">
+          <button id="step-1-pill" class="guide-pill" type="button">1. Lock Vision</button>
+          <button id="step-2-pill" class="guide-pill" type="button" data-jump-engine="stresstest">2. Run Reality Stress-Test</button>
+          <button id="step-3-pill" class="guide-pill" type="button">3. Execute &amp; Log Today's Proof</button>
         </div>
 
         <div class="card card-highlight" style="margin-bottom:18px;">
@@ -132,17 +139,31 @@
           <div class="card">
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
               <h3>Today's One Unbreakable Move</h3>
-              <span id="today-status-badge" class="badge">Pending</span>
+              <span id="today-status-badge" class="badge badge-accent">Ready to Build</span>
             </div>
             <div class="field">
               <label for="today-move-input">What single concrete action makes your vision real today?</label>
               <input id="today-move-input" type="text" placeholder="e.g., Message 3 potential users or sketch screen 1" />
             </div>
-            <button id="save-today-move-btn" class="btn btn-secondary btn-sm" style="margin-bottom:16px;">Lock Today's Move</button>
+            <button id="save-today-move-btn" class="btn btn-secondary btn-sm" style="margin-bottom:14px;">Save / Update Move</button>
+
+            <div class="sprint-box">
+              <div>
+                <span class="muted small" style="display:block;">Focus Sprint Timer (Execute right now)</span>
+                <strong id="sprint-timer-display" class="mono" style="font-size:1.35rem;">25:00</strong>
+              </div>
+              <div style="display:flex; gap:6px; flex-wrap:wrap;">
+                <button id="sprint-preset-15" class="btn btn-secondary btn-sm" type="button">15m</button>
+                <button id="sprint-preset-25" class="btn btn-secondary btn-sm" type="button">25m</button>
+                <button id="sprint-start-btn" class="btn btn-primary btn-sm" type="button">Start</button>
+                <button id="sprint-pause-btn" class="btn btn-secondary btn-sm hidden" type="button">Pause</button>
+                <button id="sprint-reset-btn" class="btn btn-secondary btn-sm" type="button">Reset</button>
+              </div>
+            </div>
 
             <div style="border-top:1px solid var(--border); padding-top:14px;">
-              <label for="proof-note-input">Log Today's Proof-of-Reality (Required to complete)</label>
-              <textarea id="proof-note-input" placeholder="What did you actually build, ship, test, or overcome today? Be honest and concrete."></textarea>
+              <label for="proof-note-input">Log Today's Proof-of-Reality (When finished):</label>
+              <textarea id="proof-note-input" placeholder="What did you actually build, ship, test, or overcome today? Be concrete."></textarea>
               <div style="display:flex; gap:8px; margin-top:10px; flex-wrap:wrap;">
                 <button id="complete-proof-btn" class="btn btn-primary">Complete &amp; Log Proof</button>
                 <button id="complete-share-btn" class="btn btn-secondary">Log + Share to #daily-proof</button>
@@ -159,14 +180,14 @@
             </div>
 
             <div class="card">
-              <h3 style="margin-bottom:10px;">Active Vision Milestones</h3>
-              <div id="cmd-milestones-preview" class="small muted">No milestones built yet.</div>
+              <h3 style="margin-bottom:10px;">Active Sprint Milestones</h3>
+              <div id="cmd-milestones-preview" class="small muted">Lock your North Star Vision to auto-generate starter milestones.</div>
               <button class="btn btn-secondary btn-sm" style="margin-top:12px;" data-jump-engine="deconstructor">Open Reverse-Timeline Architect →</button>
             </div>
 
             <div class="card">
-              <h3 style="margin-bottom:6px;">Need Deep Diagnostics?</h3>
-              <p class="small muted" style="margin-bottom:12px;">Stress-test your vision against your real constraints, break mental paralysis, or track real-world experiments.</p>
+              <h3 style="margin-bottom:6px;">Stress-Test &amp; Intelligence Suite</h3>
+              <p id="cmd-stress-summary" class="small muted" style="margin-bottom:12px;">Expose the hidden single point of failure in your plan and generate your personalized AI Co-Founder prompt.</p>
               <button class="btn btn-primary btn-sm" data-jump-engine="stresstest">Run Reality Stress-Test →</button>
             </div>
           </div>
@@ -233,7 +254,7 @@
           </div>
           <div class="card" id="st-output-card">
             <h3>Diagnostic Output</h3>
-            <div id="st-results" class="small muted" style="margin-top:10px;">Fill your constraints on the left and run the diagnostic to reveal your hidden bottleneck and custom execution strategy.</div>
+            <div id="st-results" class="small muted" style="margin-top:10px;">Select your constraints on the left and click <strong>Analyze My Reality</strong> to reveal your hidden bottleneck and custom execution strategy.</div>
           </div>
         </div>
 
@@ -296,7 +317,7 @@
           </div>
           <div class="card">
             <h3>Barriers Defeated Vault</h3>
-            <p class="small muted" style="margin-bottom:12px;">Every mental block you face head-on is recorded permanently.</p>
+            <p class="small muted" style="margin-bottom:12px;">Every mental block you face head-on is recorded permanently. You can push any 5-min step straight into Today's Move.</p>
             <div id="fearbreak-list" class="small muted">No barriers logged yet.</div>
           </div>
         </div>
