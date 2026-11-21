@@ -159,3 +159,50 @@ YOUR JOB RIGHT NOW:
 2. Give me the smartest zero-waste move I can execute in the next 45 minutes to push this vision into physical reality today.
 3. Help me design a fast real-world test so I stop guessing and start getting evidence.`;
 }
+
+
+// Keep vision labels readable in compact UI components such as chat badges.
+export function shortVision(value = "", maxLength = 70) {
+  const clean = String(value || "").trim().replace(/\s+/g, " ");
+  const limit = Math.max(1, Number(maxLength) || 70);
+  if (clean.length <= limit) return clean;
+  return clean.slice(0, Math.max(1, limit - 1)).trimEnd() + "…";
+}
+
+// Give a new builder a practical first step and a small starter roadmap.
+export function generateStarterSetup(visionTitle = "", primaryBarrier = "clarity") {
+  const starterMoves = {
+    clarity: "Write down who this vision is for, what problem it addresses, and one question you need answered first.",
+    fear: "Create the smallest imperfect version of your idea and show it to one trusted person for honest feedback.",
+    capital: "List the free tools, skills, time, and people already available to you, then choose one manual test.",
+    identity: "Identify one part of this goal you can influence now, within your current circumstances, and take a concrete first step.",
+    isolation: "Share your idea with one potential user or thoughtful peer and ask one specific question about it."
+  };
+
+  const stamp = Date.now();
+  const milestones = [
+    {
+      id: "starter_" + stamp + "_1",
+      title: "Define who this vision serves and the specific problem it should solve",
+      targetDays: 3,
+      done: false
+    },
+    {
+      id: "starter_" + stamp + "_2",
+      title: "Create the smallest testable version or manual demonstration",
+      targetDays: 7,
+      done: false
+    },
+    {
+      id: "starter_" + stamp + "_3",
+      title: "Put the idea in front of three real people and record what you learn",
+      targetDays: 14,
+      done: false
+    }
+  ];
+
+  return {
+    todayMoveText: starterMoves[primaryBarrier] || starterMoves.clarity,
+    milestones
+  };
+}
