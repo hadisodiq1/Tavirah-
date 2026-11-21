@@ -24,9 +24,11 @@ import {
 
 import {
   esc,
+  shortVision,
   todayStr,
   BARRIER_LABELS,
   UNBLOCK_ADVICE,
+  generateStarterSetup,
   runStressDiagnostic,
   buildSynthesizedPrompt
 } from "./engines.js";
@@ -50,6 +52,10 @@ let unsubChat = null;
 let unsubConfig = null;
 let cachedBuilders = [];
 
+// FOCUS SPRINT TIMER STATE
+let sprintSeconds = 25 * 60;
+let sprintInterval = null;
+
 const DEFAULT_ROOMS = [
   { id: "daily-proof", name: "#daily-proof", desc: "Share completed daily moves" },
   { id: "unstuck-sos", name: "#unstuck-sos", desc: "Get real human help on roadblocks" },
@@ -64,8 +70,58 @@ function showToast(msg) {
   el.textContent = msg;
   el.classList.remove("hidden");
   clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => el.classList.add("hidden"), 3200);
+  toastTimer = setTimeout(() => el.classList.add("hidden"), 3400);
 }
+
+// FOCUS SPRINT TIMER
+function renderTimerDisplay() {
+  const display = document.getElementById("sprint-timer-display");
+  if (!display) return;
+  const mins = String(Math.floor(sprintSeconds / 60)).padStart(2, "0");
+  const secs = String(sprintSeconds % 60).padStart(2, "0");
+  display.textContent = mins + ":" + secs;
+}
+
+function setTimerMinutes(minutes) {
+  clearInterval(sprintInterval);
+  sprintInterval = null;
+  sprintSeconds = minutes * 60;
+  document.getElementById("sprint-start-btn").classList.remove("hidden");
+  document.getElementById("sprint-pause-btn").classList.add("hidden");
+  renderTimerDisplay();
+}
+
+document.getElementById("sprint-preset-15").addEventListener("click", () => setTimerMinutes(15));
+document.getElementById("sprint-preset-25").addEventListener("click", () => setTimerMinutes(25));
+document.getElementById("sprint-reset-btn").addEventListener("click", () => setTimerMinutes(25));
+
+document.getElementById("sprint-start-btn").addEventListener("click", () => {
+  if (sprintInterval || sprintSeconds <= 0) return;
+  document.getElementById("sprint-start-btn").classList.add("hidden");
+  document.getElementById("sprint-pause-btn").classList.remove("hidden");
+
+  sprintInterval = setInterval(() => {
+    if (sprintSeconds <= 1) {
+      clearInterval(sprintInterval);
+      sprintInterval = null;
+      sprintSeconds = 0;
+      renderTimerDisplay();
+      document.getElementById("sprint-start-btn").classList.remove("hidden");
+      document.getElementById("sprint-pause-btn").classList.add("hidden");
+      showToast("Focus Sprint complete! Log your Proof-of-Reality below.");
+      return;
+    }
+    sprintSeconds -= 1;
+    renderTimerDisplay();
+  }, 1000);
+});
+
+document.getElementById("sprint-pause-btn").addEventListener("click", () => {
+  clearInterval(sprintInterval);
+  sprintInterval = null;
+  document.getElementById("sprint-start-btn").classList.remove("hidden");
+  document.getElementById("sprint-pause-btn").classList.add("hidden");
+});
 
 // VIEW & SUBTAB SWITCHING
 function switchView(viewName) {
@@ -146,7 +202,7 @@ async function syncBuilderPublicCard(data) {
     {
       uid: currentUser.uid,
       displayName: data.displayName || currentUser.displayName || "Builder",
-      visionTitle: data.visionTitle || "",
+      visionTitle: shortVision(data.visionTitle || "", 70),
       primaryBarrier: data.primaryBarrier || "clarity",
       streak: Number(data.streak || 0),
       totalProofs: Number(data.totalProofs || 0),
@@ -266,8 +322,24 @@ function renderAllUserViews() {
   }
 
   const badge = document.getElementById("today-status-badge");
-  badge.textContent = completedToday ? "Completed Today" : "Pending";
+  badge.textContent = completedToday ? "Shipped Today ✓" : "Ready to Build";
   badge.className = completedToday ? "badge badge-green" : "badge badge-accent";
+
+  // Guided three-step journey
+  const step1 = document.getElementById("step-1-pill");
+  const step2 = document.getElementById("step-2-pill");
+  const step3 = document.getElementById("step-3-pill");
+  step1.classList.toggle("done", Boolean(userData.visionTitle));
+  step1.textContent = userData.visionTitle ? "1. Vision Locked ✓" : "1. Lock Vision";
+  step2.classList.toggle("done", Boolean(userData.stressTest));
+  step2.textContent = userData.stressTest ? "2. Stress-Tested ✓" : "2. Run Reality Stress-Test";
+  step3.classList.toggle("done", completedToday);
+  step3.textContent = completedToday ? "3. Proof Logged Today ✓" : "3. Execute & Log Today's Proof";
+
+  const summary = document.getElementById("cmd-stress-summary");
+  if (summary && userData.stressTest) {
+    summary.textContent = "Readiness " + userData.stressTest.score + "/100 • Bottleneck: " + userData.stressTest.bottleneck;
+  }
 
   // Milestones Preview + Engine 2
   renderMilestones();
@@ -281,11 +353,17 @@ function renderAllUserViews() {
 }
 
 // VISION MODAL
-document.getElementById("edit-vision-btn").addEventListener("click", () => {
+const openVisionModal = () => {
   document.getElementById("v-title").value = userData?.visionTitle || "";
   document.getElementById("v-why").value = userData?.visionWhy || "";
   document.getElementById("v-barrier").value = userData?.primaryBarrier || "clarity";
   document.getElementById("vision-modal").classList.remove("hidden");
+};
+
+document.getElementById("edit-vision-btn").addEventListener("click", openVisionModal);
+document.getElementById("step-1-pill").addEventListener("click", openVisionModal);
+document.getElementById("step-3-pill").addEventListener("click", () => {
+  document.getElementById("today-move-input").focus();
 });
 
 document.getElementById("close-vision-modal").addEventListener("click", () => {
@@ -294,15 +372,36 @@ document.getElementById("close-vision-modal").addEventListener("click", () => {
 
 document.getElementById("vision-form").addEventListener("submit", async (e) => {
   e.preventDefault();
-  const updates = {
-    visionTitle: document.getElementById("v-title").value.trim(),
-    visionWhy: document.getElementById("v-why").value.trim(),
-    primaryBarrier: document.getElementById("v-barrier").value
-  };
+  const visionTitle = document.getElementById("v-title").value.trim();
+  const visionWhy = document.getElementById("v-why").value.trim();
+  const primaryBarrier = document.getElementById("v-barrier").value;
+  const updates = { visionTitle, visionWhy, primaryBarrier };
+
+  // Create a starter move and roadmap only when the builder has none.
+  const starter = generateStarterSetup(visionTitle, primaryBarrier);
+  let generatedAnything = false;
+
+  if (!userData?.todayMove?.text) {
+    updates.todayMove = {
+      text: starter.todayMoveText,
+      completedToday: false,
+      updatedDate: todayStr(0)
+    };
+    generatedAnything = true;
+  }
+  if (!userData?.milestones || userData.milestones.length === 0) {
+    updates.milestones = starter.milestones;
+    generatedAnything = true;
+  }
+
   await updateDoc(doc(db, "users", currentUser.uid), updates);
   await syncBuilderPublicCard({ ...userData, ...updates });
   document.getElementById("vision-modal").classList.add("hidden");
-  showToast("North Star Vision locked.");
+  showToast(
+    generatedAnything
+      ? "Vision locked! Starter milestones & Today's Move generated for you."
+      : "North Star Vision updated."
+  );
 });
 
 // TODAY'S MOVE & PROOF LOGGING
@@ -362,7 +461,7 @@ async function submitDailyProof(shareToRoom) {
     await addDoc(collection(db, "rooms", "daily-proof", "messages"), {
       uid: currentUser.uid,
       authorName: userData.displayName || "Builder",
-      authorVision: userData.visionTitle || "Building",
+      authorVision: shortVision(userData.visionTitle || "Building", 30),
       authorStreak: newStreak,
       type: "proof",
       text: `Brick #${newTotal} (${newStreak}d streak): ${proofNote}`,
@@ -733,7 +832,7 @@ function renderBuildersList(list) {
           <strong>${esc(b.displayName || "Builder")}</strong>
           <span class="badge badge-green">${Number(b.totalProofs || 0)} proofs • ${Number(b.streak || 0)}d</span>
         </div>
-        <div style="margin-top:8px; font-weight:600;">${esc(b.visionTitle || "Defining vision...")}</div>
+        <div style="margin-top:8px; font-weight:600;">${esc(shortVision(b.visionTitle || "Defining vision...", 70))}</div>
         <div class="small muted" style="margin-top:4px;">Facing: ${esc(BARRIER_LABELS[b.primaryBarrier] || "—")}</div>
         ${b.skillsOffer ? `<div class="small" style="margin-top:8px;"><span class="badge badge-blue">Can Offer</span> ${esc(b.skillsOffer)}</div>` : ""}
         ${b.skillsNeed ? `<div class="small" style="margin-top:6px;"><span class="badge badge-accent">Looking For</span> ${esc(b.skillsNeed)}</div>` : ""}
@@ -798,7 +897,7 @@ function subscribeToRoom(roomId) {
           <div class="msg ${mine ? "mine" : ""} ${typeClass}">
             <div class="msg-meta">
               <strong>${esc(m.authorName || "Builder")}</strong>
-              <span class="badge">${esc(m.authorVision || "Building")}</span>
+              <span class="badge chat-vision-pill" title="${esc(m.authorVision || "")}">${esc(shortVision(m.authorVision || "Building", 28))}</span>
               <span class="mono muted">${Number(m.authorStreak || 0)}d</span>
               ${(mine || founder) ? `<button class="btn btn-danger btn-sm msg-del" data-id="${d.id}" style="padding:2px 7px; font-size:0.7rem;">Del</button>` : ""}
             </div>
@@ -828,7 +927,7 @@ document.getElementById("chat-form").addEventListener("submit", async (e) => {
   await addDoc(collection(db, "rooms", activeRoom, "messages"), {
     uid: currentUser.uid,
     authorName: userData?.displayName || "Builder",
-    authorVision: userData?.visionTitle || "Building",
+    authorVision: shortVision(userData?.visionTitle || "Building", 30),
     authorStreak: userData?.streak || 0,
     type: "chat",
     text,
@@ -860,7 +959,7 @@ document.getElementById("send-sos-btn").addEventListener("click", async () => {
   await addDoc(collection(db, "rooms", "unstuck-sos", "messages"), {
     uid: currentUser.uid,
     authorName: userData?.displayName || "Builder",
-    authorVision: userData?.visionTitle || "Building",
+    authorVision: shortVision(userData?.visionTitle || "Building", 30),
     authorStreak: userData?.streak || 0,
     type: "sos",
     text: `SOS BLOCKER: ${text}`,
