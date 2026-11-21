@@ -1,0 +1,558 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Tavirah OS — Vision to Reality</title>
+  <meta name="theme-color" content="#09090b" />
+  <link rel="manifest" href="./manifest.json" />
+  <link rel="stylesheet" href="./css/styles.css" />
+</head>
+<body>
+
+  <!-- AUTHENTICATION SCREEN -->
+  <section id="auth-screen" class="auth-wrap">
+    <div class="card auth-box">
+      <div class="brand-mark">
+        <span class="brand-dot"></span>
+        <span>TAVIRAH <span class="muted small mono">OS</span></span>
+      </div>
+      <p class="muted small" style="margin-top:8px;">
+        The daily operating system built to convert human vision into physical reality—regardless of circumstance, resources, or identity.
+      </p>
+
+      <div class="auth-tabs">
+        <button id="tab-signin" class="auth-tab active" type="button">Sign In</button>
+        <button id="tab-signup" class="auth-tab" type="button">Join Tavirah</button>
+      </div>
+
+      <form id="auth-form">
+        <div id="signup-name-field" class="field hidden">
+          <label for="auth-name">Builder Name / Alias</label>
+          <input id="auth-name" type="text" placeholder="e.g. Addi, Maya, Builder_01" />
+        </div>
+        <div class="field">
+          <label for="auth-email">Email</label>
+          <input id="auth-email" type="email" required placeholder="you@example.com" />
+        </div>
+        <div class="field">
+          <label for="auth-password">Password (min 6 characters)</label>
+          <input id="auth-password" type="password" required minlength="6" placeholder="••••••••" />
+        </div>
+        <p id="auth-error" class="small hidden" style="color:#fca5a5; margin-bottom:12px;"></p>
+        <button id="auth-submit-btn" type="submit" class="btn btn-primary btn-full">Enter Tavirah OS</button>
+      </form>
+    </div>
+  </section>
+
+  <!-- MAIN APP SHELL -->
+  <div id="app-shell" class="app-shell hidden">
+    <aside class="sidebar">
+      <div class="brand-mark">
+        <span class="brand-dot"></span>
+        <span>TAVIRAH <span class="muted small mono">OS</span></span>
+      </div>
+      <p id="sidebar-user-tag" class="muted small mono" style="margin-top:6px;">Loading...</p>
+
+      <nav class="nav-list">
+        <button class="nav-btn active" data-view="command">⚡ Daily Command</button>
+        <button class="nav-btn" data-view="engines">🧠 Intelligence Suite</button>
+        <button class="nav-btn" data-view="timeline">🧱 Proof Timeline</button>
+        <button class="nav-btn" data-view="network">🌐 Builder Network</button>
+        <button class="nav-btn" data-view="chat">💬 Live Builder Rooms</button>
+        <button id="nav-founder-btn" class="nav-btn founder-nav hidden" data-view="founder">🛡️ Founder Cockpit</button>
+      </nav>
+
+      <div style="border-top:1px solid var(--border); padding-top:12px; display:flex; flex-direction:column; gap:8px;">
+        <button id="open-unblock-btn" class="btn btn-danger btn-sm btn-full">Stuck Right Now?</button>
+        <button id="logout-btn" class="btn btn-secondary btn-sm btn-full">Sign Out</button>
+      </div>
+    </aside>
+
+    <!-- MOBILE BOTTOM NAV -->
+    <nav class="mobile-nav">
+      <button class="nav-btn active" data-view="command">⚡<span>Daily</span></button>
+      <button class="nav-btn" data-view="engines">🧠<span>Engines</span></button>
+      <button class="nav-btn" data-view="timeline">🧱<span>Proof</span></button>
+      <button class="nav-btn" data-view="network">🌐<span>Builders</span></button>
+      <button class="nav-btn" data-view="chat">💬<span>Rooms</span></button>
+      <button id="mobile-founder-btn" class="nav-btn founder-nav hidden" data-view="founder">🛡️<span>Founder</span></button>
+    </nav>
+
+    <main class="main-content">
+      <!-- LIVE FOUNDER ANNOUNCEMENT BANNER -->
+      <div id="live-announcement" class="announcement-banner hidden">
+        <div>
+          <span class="badge badge-blue" style="margin-bottom:4px;">LIVE FROM TAVIRAH</span>
+          <strong id="ann-title" style="display:block;"></strong>
+          <span id="ann-body" class="small muted"></span>
+        </div>
+        <button id="dismiss-ann-btn" class="btn btn-secondary btn-sm">Dismiss</button>
+      </div>
+
+      <!-- VIEW 1: DAILY COMMAND CENTER -->
+      <section id="view-command" class="view">
+        <div class="page-header">
+          <div>
+            <h1>Daily Command Center</h1>
+            <p class="muted small">Convert one piece of your vision into physical reality today.</p>
+          </div>
+          <div style="display:flex; gap:8px; flex-wrap:wrap;">
+            <button id="edit-vision-btn" class="btn btn-secondary btn-sm">Edit North Star</button>
+            <button id="mobile-unblock-btn" class="btn btn-danger btn-sm">Stuck Right Now?</button>
+          </div>
+        </div>
+
+        <div class="card card-highlight" style="margin-bottom:18px;">
+          <div style="display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap;">
+            <span class="badge badge-accent">MY NORTH STAR VISION</span>
+            <span id="cmd-barrier-badge" class="badge">Primary Block: —</span>
+          </div>
+          <h2 id="cmd-vision-title" style="margin-top:10px; font-size:1.35rem;">Define your vision...</h2>
+          <p id="cmd-vision-why" class="muted small" style="margin-top:4px;"></p>
+        </div>
+
+        <div class="grid-3" style="margin-bottom:18px;">
+          <div class="card">
+            <span class="muted small">Execution Streak</span>
+            <div class="stat-num" id="stat-streak">0 days</div>
+          </div>
+          <div class="card">
+            <span class="muted small">Total Bricks Laid (Proofs)</span>
+            <div class="stat-num" id="stat-proofs">0</div>
+          </div>
+          <div class="card">
+            <span class="muted small">Fears & Experiments</span>
+            <div class="stat-num" id="stat-mastery">0</div>
+          </div>
+        </div>
+
+        <div class="grid-2">
+          <!-- TODAY'S UNBREAKABLE MOVE -->
+          <div class="card">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+              <h3>Today's One Unbreakable Move</h3>
+              <span id="today-status-badge" class="badge">Pending</span>
+            </div>
+            <div class="field">
+              <label for="today-move-input">What single concrete action makes your vision real today?</label>
+              <input id="today-move-input" type="text" placeholder="e.g., Message 3 potential users or sketch screen 1" />
+            </div>
+            <button id="save-today-move-btn" class="btn btn-secondary btn-sm" style="margin-bottom:16px;">Lock Today's Move</button>
+
+            <div style="border-top:1px solid var(--border); padding-top:14px;">
+              <label for="proof-note-input">Log Today's Proof-of-Reality (Required to complete)</label>
+              <textarea id="proof-note-input" placeholder="What did you actually build, ship, test, or overcome today? Be honest and concrete."></textarea>
+              <div style="display:flex; gap:8px; margin-top:10px; flex-wrap:wrap;">
+                <button id="complete-proof-btn" class="btn btn-primary">Complete &amp; Log Proof</button>
+                <button id="complete-share-btn" class="btn btn-secondary">Log + Share to #daily-proof</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- LIVE CHALLENGE & ENGINE SHORTCUTS -->
+          <div style="display:flex; flex-direction:column; gap:16px;">
+            <div id="live-challenge-card" class="card hidden">
+              <span class="badge badge-green">FOUNDER'S ACTIVE DIRECTIVE</span>
+              <h3 id="live-challenge-title" style="margin-top:8px;"></h3>
+              <p id="live-challenge-body" class="small muted" style="margin-top:4px;"></p>
+            </div>
+
+            <div class="card">
+              <h3 style="margin-bottom:10px;">Active Vision Milestones</h3>
+              <div id="cmd-milestones-preview" class="small muted">No milestones built yet.</div>
+              <button class="btn btn-secondary btn-sm" style="margin-top:12px;" data-jump-engine="deconstructor">Open Reverse-Timeline Architect →</button>
+            </div>
+
+            <div class="card">
+              <h3 style="margin-bottom:6px;">Need Deep Diagnostics?</h3>
+              <p class="small muted" style="margin-bottom:12px;">Stress-test your vision against your real constraints, break mental paralysis, or track real-world experiments.</p>
+              <button class="btn btn-primary btn-sm" data-jump-engine="stresstest">Run Reality Stress-Test →</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- VIEW 2: 6-ENGINE INTELLIGENCE SUITE -->
+      <section id="view-engines" class="view hidden">
+        <div class="page-header">
+          <div>
+            <h1>Tavirah Intelligence Suite</h1>
+            <p class="muted small">Six interconnected engines engineered to turn ideas into undeniable reality.</p>
+          </div>
+        </div>
+
+        <div class="subtabs">
+          <button class="subtab active" data-engine="stresstest">1. Reality Stress-Tester</button>
+          <button class="subtab" data-engine="deconstructor">2. Reverse-Timeline</button>
+          <button class="subtab" data-engine="fearbreaker">3. Fear &amp; Friction Lab</button>
+          <button class="subtab" data-engine="skills">4. Skill-Gap Mapper</button>
+          <button class="subtab" data-engine="experiments">5. Experiment Lab</button>
+          <button class="subtab" data-engine="protocols">6. Live Protocols &amp; AI Prompt</button>
+        </div>
+
+        <!-- ENGINE 1: REALITY STRESS-TESTER -->
+        <div id="engine-stresstest" class="engine-panel grid-2">
+          <div class="card">
+            <h3>Reality Stress-Tester</h3>
+            <p class="small muted" style="margin-bottom:14px;">Expose the single point of failure in your current plan before you waste months.</p>
+            <div class="field">
+              <label for="st-capital">Current Available Capital</label>
+              <select id="st-capital">
+                <option value="zero">$0 (Pure sweat &amp; free tools)</option>
+                <option value="micro">Tiny ($10 – $100)</option>
+                <option value="funded">Funded ($100+)</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="st-hours">Focused Hours Per Week</label>
+              <select id="st-hours">
+                <option value="low">Under 5 hrs/week (Survival mode)</option>
+                <option value="med">5 – 15 hrs/week (Consistent side-build)</option>
+                <option value="high">15+ hrs/week (All-in sprint)</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="st-stage">Current Reality Stage</label>
+              <select id="st-stage">
+                <option value="idea">Still only in my head</option>
+                <option value="started">Started, then stalled halfway</option>
+                <option value="built">Built something, nobody uses/buys it yet</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="st-fear">What honestly stops you most days?</label>
+              <select id="st-fear">
+                <option value="perfectionism">Waiting until it's "perfect" or ready</option>
+                <option value="judgment">Fear of judgment / background / identity</option>
+                <option value="clarity">Too many ideas, zero clear Step 1</option>
+                <option value="resources">Missing tools, money, or connections</option>
+              </select>
+            </div>
+            <button id="run-stresstest-btn" class="btn btn-primary btn-full">Analyze My Reality</button>
+          </div>
+          <div class="card" id="st-output-card">
+            <h3>Diagnostic Output</h3>
+            <div id="st-results" class="small muted" style="margin-top:10px;">Fill your constraints on the left and run the diagnostic to reveal your hidden bottleneck and custom execution strategy.</div>
+          </div>
+        </div>
+
+        <!-- ENGINE 2: REVERSE-TIMELINE ARCHITECT -->
+        <div id="engine-deconstructor" class="engine-panel hidden grid-2">
+          <div class="card">
+            <h3>Reverse-Timeline Architect</h3>
+            <p class="small muted" style="margin-bottom:14px;">Engineer your macro vision backward into concrete sprint milestones.</p>
+            <div class="field">
+              <label for="ms-title">Milestone Title (Concrete Deliverable)</label>
+              <input id="ms-title" type="text" placeholder="e.g., Ship working prototype to first 10 people" />
+            </div>
+            <div class="field">
+              <label for="ms-days">Target Window (Days from now)</label>
+              <select id="ms-days">
+                <option value="3">3-Day Micro-Sprint</option>
+                <option value="7">7-Day Sprint</option>
+                <option value="14">14-Day Build</option>
+                <option value="30">30-Day Phase</option>
+              </select>
+            </div>
+            <button id="add-milestone-btn" class="btn btn-primary">Add Milestone</button>
+          </div>
+          <div class="card">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+              <h3>Sprint Completion</h3>
+              <span id="ms-percent" class="mono small">0%</span>
+            </div>
+            <div class="progress-track" style="margin-bottom:16px;"><div id="ms-progress-fill" class="progress-fill" style="width:0%;"></div></div>
+            <div id="milestones-list" class="small muted">No milestones yet.</div>
+          </div>
+        </div>
+
+        <!-- ENGINE 3: FRICTION & FEAR BREAKER LAB -->
+        <div id="engine-fearbreaker" class="engine-panel hidden grid-2">
+          <div class="card">
+            <h3>Fear &amp; Friction Breaker</h3>
+            <p class="small muted" style="margin-bottom:14px;">Use tactical inversion to crush paralysis, impostor syndrome, and perfectionism.</p>
+            <div class="field">
+              <label for="fb-protocol">Intervention Protocol</label>
+              <select id="fb-protocol">
+                <option value="fear-setting">Fear-Setting (Expose the worst case)</option>
+                <option value="pre-mortem">Pre-Mortem Inversion (Kill failure modes early)</option>
+                <option value="5min-rule">5-Minute Micro-Threshold (Bypass perfectionism)</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="fb-fear">What exact action are you avoiding right now?</label>
+              <input id="fb-fear" type="text" placeholder="e.g., Publishing my first post / pitching a partner" />
+            </div>
+            <div class="field">
+              <label for="fb-worst">What is the realistic worst-case if it fails—and how would you recover?</label>
+              <textarea id="fb-worst" placeholder="They say no or ignore it. Life continues, and I learn what to fix."></textarea>
+            </div>
+            <div class="field">
+              <label for="fb-micro">What is the 5-minute ugly version you can execute immediately?</label>
+              <input id="fb-micro" type="text" placeholder="e.g., Write a rough 3-line draft and send it" />
+            </div>
+            <button id="save-fearbreak-btn" class="btn btn-primary btn-full">Lock Intervention &amp; Conquer Block</button>
+          </div>
+          <div class="card">
+            <h3>Barriers Defeated Vault</h3>
+            <p class="small muted" style="margin-bottom:12px;">Every mental block you face head-on is recorded permanently.</p>
+            <div id="fearbreak-list" class="small muted">No barriers logged yet.</div>
+          </div>
+        </div>
+
+        <!-- ENGINE 4: SKILL-GAP & LEVERAGE MAPPER -->
+        <div id="engine-skills" class="engine-panel hidden grid-2">
+          <div class="card">
+            <h3>Skill-Gap &amp; Leverage Mapper</h3>
+            <p class="small muted" style="margin-bottom:14px;">Map the 20% of skills your vision needs—and flag what to trade for instead of doing alone.</p>
+            <div class="field">
+              <label for="sk-name">Skill Needed for Your Vision</label>
+              <input id="sk-name" type="text" placeholder="e.g., UI Design, Sales Outreach, Python, Video Editing" />
+            </div>
+            <div class="field">
+              <label for="sk-status">Current Leverage Status</label>
+              <select id="sk-status">
+                <option value="learning">Currently Learning (Need 20% fundamentals)</option>
+                <option value="mastered">Strong / Can Offer to Other Builders</option>
+                <option value="swap">Missing — Looking to Skill-Swap in Tavirah</option>
+              </select>
+            </div>
+            <button id="add-skill-btn" class="btn btn-primary">Map Skill</button>
+            <hr style="border:none; border-top:1px solid var(--border); margin:18px 0;" />
+            <div class="field">
+              <label for="profile-offer">What I Can Help Others With (Shown in Builder Network)</label>
+              <input id="profile-offer" type="text" placeholder="e.g., Content strategy, coding, feedback" />
+            </div>
+            <div class="field">
+              <label for="profile-need">What Help/Collaboration I'm Looking For</label>
+              <input id="profile-need" type="text" placeholder="e.g., Designer or accountability partner" />
+            </div>
+            <button id="save-swap-profile-btn" class="btn btn-secondary btn-sm">Update Network Card</button>
+          </div>
+          <div class="card">
+            <h3>My Vision Skill Matrix</h3>
+            <div id="skills-list" class="small muted" style="margin-top:12px;">No skills mapped yet.</div>
+          </div>
+        </div>
+
+        <!-- ENGINE 5: REAL-WORLD EXPERIMENT LAB -->
+        <div id="engine-experiments" class="engine-panel hidden grid-2">
+          <div class="card">
+            <h3>Real-World Experiment Lab</h3>
+            <p class="small muted" style="margin-bottom:14px;">Stop guessing in your head. Turn your vision into testable real-world hypotheses.</p>
+            <div class="field">
+              <label for="exp-hyp">Hypothesis ("If I do X, then Y will happen")</label>
+              <textarea id="exp-hyp" placeholder="e.g., If I share a free sample with 10 people today, at least 2 will ask for the full version."></textarea>
+            </div>
+            <div class="field">
+              <label for="exp-deadline">Test Deadline</label>
+              <input id="exp-deadline" type="date" />
+            </div>
+            <button id="add-exp-btn" class="btn btn-primary">Launch Experiment</button>
+          </div>
+          <div class="card">
+            <h3>Evidence Vault</h3>
+            <div id="experiments-list" class="small muted" style="margin-top:12px;">No experiments launched yet.</div>
+          </div>
+        </div>
+
+        <!-- ENGINE 6: LIVE PROTOCOLS & AI CO-FOUNDER SYNTHESIZER -->
+        <div id="engine-protocols" class="engine-panel hidden grid-2">
+          <div class="card">
+            <h3>Dynamic Protocols (Pushed Live by Tavirah)</h3>
+            <p class="small muted" style="margin-bottom:12px;">New execution frameworks added in real time as humanity's challenges evolve.</p>
+            <div id="live-protocols-list" class="small muted">No custom protocols pushed yet—check back soon!</div>
+          </div>
+          <div class="card">
+            <h3>Custom AI Co-Founder Context Generator</h3>
+            <p class="small muted" style="margin-bottom:10px;">Generates a hyper-specific prompt loaded with your real Vision, Stress-Test Bottleneck, and Active Experiments to paste into Claude/ChatGPT/Gemini.</p>
+            <textarea id="ai-synth-prompt" readonly style="min-height:200px; font-size:0.82rem;" class="mono"></textarea>
+            <button id="copy-synth-btn" class="btn btn-primary btn-sm" style="margin-top:10px;">Copy Personalized Mentor Prompt</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- VIEW 3: PROOF-OF-REALITY TIMELINE -->
+      <section id="view-timeline" class="view hidden">
+        <div class="page-header">
+          <div>
+            <h1>Proof-of-Reality Timeline</h1>
+            <p class="muted small">Your permanent chronological record showing you turned vision into reality.</p>
+          </div>
+        </div>
+        <div class="card">
+          <div id="proof-timeline-list" class="small muted">Complete your first Daily Move to lay Brick #1.</div>
+        </div>
+      </section>
+
+      <!-- VIEW 4: BUILDER NETWORK & SKILL EXCHANGE -->
+      <section id="view-network" class="view hidden">
+        <div class="page-header">
+          <div>
+            <h1>Builder Network</h1>
+            <p class="muted small">Connect by what people are actually building and willing to exchange—zero status gatekeeping.</p>
+          </div>
+        </div>
+        <div class="card" style="margin-bottom:16px;">
+          <input id="network-search" type="text" placeholder="Search visions, skills offered, or skills needed (e.g. 'design', 'app', 'education')..." />
+        </div>
+        <div id="builders-grid" class="grid-2"></div>
+      </section>
+
+      <!-- VIEW 5: REAL-TIME MULTI-ROOM CHAT -->
+      <section id="view-chat" class="view hidden">
+        <div class="page-header">
+          <div>
+            <h1>Live Builder Rooms</h1>
+            <p class="muted small">Real-time connection anchored around daily execution and mutual elevation.</p>
+          </div>
+        </div>
+        <div class="chat-shell">
+          <div id="chat-rooms-list" class="chat-rooms"></div>
+          <div class="chat-box">
+            <div style="padding:12px 16px; border-bottom:1px solid var(--border); display:flex; justify-content:space-between; align-items:center;">
+              <strong id="active-room-title">#daily-proof</strong>
+              <span id="active-room-desc" class="small muted">Share completed moves</span>
+            </div>
+            <div id="chat-messages" class="chat-messages"></div>
+            <form id="chat-form" class="chat-input-bar">
+              <input id="chat-input" type="text" maxlength="1000" placeholder="Write to the room..." required />
+              <button type="submit" class="btn btn-primary btn-sm">Send</button>
+            </form>
+          </div>
+        </div>
+      </section>
+
+      <!-- VIEW 6: SECRET FOUNDER-ONLY COCKPIT -->
+      <section id="view-founder" class="view hidden">
+        <div class="page-header">
+          <div>
+            <span class="badge badge-accent">FOUNDER CLEARANCE ONLY</span>
+            <h1 style="margin-top:6px;">Founder Intelligence Cockpit</h1>
+            <p class="muted small">Real-time ecosystem patterns, live no-code upgrades, and your AI Architecture Bridge.</p>
+          </div>
+          <button id="refresh-founder-btn" class="btn btn-secondary btn-sm">Refresh Live Telemetry</button>
+        </div>
+
+        <div class="grid-3" style="margin-bottom:18px;">
+          <div class="card"><span class="muted small">Total Builders</span><div class="stat-num" id="f-total-users">0</div></div>
+          <div class="card"><span class="muted small">Total Reality Proofs</span><div class="stat-num" id="f-total-proofs">0</div></div>
+          <div class="card"><span class="muted small">#1 Ecosystem Blocker</span><div class="stat-num" style="font-size:1.2rem; margin-top:6px;" id="f-top-blocker">—</div></div>
+        </div>
+
+        <div class="grid-2" style="margin-bottom:18px;">
+          <!-- PUSH LIVE UPGRADES WITHOUT REDEPLOYING -->
+          <div class="card">
+            <h3>Live App Upgrader (No-Code Push)</h3>
+            <p class="small muted" style="margin-bottom:12px;">Push announcements, directives, new protocols, or chat rooms live to every user instantly.</p>
+            <div class="field">
+              <label for="f-ann-title">Global Announcement Title</label>
+              <input id="f-ann-title" type="text" placeholder="e.g., Week 1 Reality Sprint Begins" />
+            </div>
+            <div class="field">
+              <label for="f-ann-body">Announcement Message</label>
+              <textarea id="f-ann-body" placeholder="Message visible across all users' Command Centers..."></textarea>
+            </div>
+            <button id="f-push-ann-btn" class="btn btn-primary btn-sm">Push Global Announcement</button>
+
+            <hr style="border:none; border-top:1px solid var(--border); margin:16px 0;" />
+            <div class="field">
+              <label for="f-proto-title">Push New Live Protocol to Engine #6</label>
+              <input id="f-proto-title" type="text" placeholder="Protocol Title (e.g., 48-Hour Zero-Capital Test)" />
+            </div>
+            <div class="field">
+              <label for="f-proto-steps">Actionable Steps</label>
+              <textarea id="f-proto-steps" placeholder="Step 1... Step 2... Step 3..."></textarea>
+            </div>
+            <button id="f-push-proto-btn" class="btn btn-secondary btn-sm">Push Protocol Live</button>
+          </div>
+
+          <!-- 1-CLICK AI ARCHITECTURE BRIDGE -->
+          <div class="card">
+            <h3>AI Upgrade Bridge &amp; Autonomous Hook</h3>
+            <p class="small muted" style="margin-bottom:10px;">
+              Packages your real database telemetry into a diagnostic brief. Paste it to your internet-connected AI partner (Claude/Gemini) to ask: <em>"Based on user bottlenecks &amp; new world tools today, what should we upgrade?"</em>
+            </p>
+            <textarea id="f-ai-brief" readonly style="min-height:190px; font-size:0.8rem;" class="mono"></textarea>
+            <button id="f-copy-brief-btn" class="btn btn-primary btn-sm" style="margin-top:10px;">Copy Live Founder Brief</button>
+
+            <div style="margin-top:16px; padding:12px; border-radius:9px; border:1px dashed var(--border); background:var(--bg);">
+              <strong class="small">Future Autonomous API Slot</strong>
+              <p class="small muted" style="margin-top:4px;">Status: <span class="mono" style="color:var(--accent);">STANDBY ($0 Static Mode)</span>. Ready for Cloud Function + LLM Agent Key plug-in when scaling to company stage.</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <h3>Active Builder Telemetry Feed</h3>
+          <div id="f-users-table" class="small muted" style="margin-top:10px;">Click "Refresh Live Telemetry" to inspect ecosystem patterns.</div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- NORTH STAR VISION ONBOARDING / EDIT MODAL -->
+  <div id="vision-modal" class="modal-backdrop hidden">
+    <div class="card modal-card">
+      <h2>Define Your North Star Vision</h2>
+      <p class="small muted" style="margin:6px 0 16px;">Tavirah is built to make this real. Be specific about what you want to bring into the world.</p>
+      <form id="vision-form">
+        <div class="field">
+          <label for="v-title">What reality are you building?</label>
+          <input id="v-title" type="text" required placeholder="e.g., Launch an affordable local logistics app" />
+        </div>
+        <div class="field">
+          <label for="v-why">Why does this matter to you / humanity?</label>
+          <textarea id="v-why" required placeholder="Who does it help and what changes if you succeed?"></textarea>
+        </div>
+        <div class="field">
+          <label for="v-barrier">Primary Barrier Stopping You Right Now</label>
+          <select id="v-barrier">
+            <option value="clarity">Lack of Clarity / Don't know where to start</option>
+            <option value="fear">Fear, Self-Doubt, or Perfectionism</option>
+            <option value="capital">Zero Capital / Limited Resources</option>
+            <option value="identity">Circumstance, Background, or Identity Boxes</option>
+            <option value="isolation">Building Completely Alone / Isolation</option>
+          </select>
+        </div>
+        <div style="display:flex; gap:10px; justify-content:flex-end;">
+          <button type="button" id="close-vision-modal" class="btn btn-secondary">Cancel</button>
+          <button type="submit" class="btn btn-primary">Lock In Vision</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- TACTICAL UNBLOCK SOS MODAL -->
+  <div id="unblock-modal" class="modal-backdrop hidden">
+    <div class="card modal-card">
+      <div style="display:flex; justify-content:space-between; align-items:center;">
+        <h3>60-Second Tactical Unblock</h3>
+        <button id="close-unblock-btn" class="btn btn-secondary btn-sm">Close</button>
+      </div>
+      <p class="small muted" style="margin:6px 0 14px;">Tap what is freezing your momentum right now:</p>
+      <div class="grid-2" style="margin-bottom:14px;">
+        <button class="btn btn-secondary btn-sm unblock-choice" data-block="fear">😰 Fear / Perfectionism</button>
+        <button class="btn btn-secondary btn-sm unblock-choice" data-block="clarity">🌫️ Overwhelmed / Foggy</button>
+        <button class="btn btn-secondary btn-sm unblock-choice" data-block="capital">🪙 Zero Capital / Tools</button>
+        <button class="btn btn-secondary btn-sm unblock-choice" data-block="isolation">🧱 Tired / Feeling Alone</button>
+      </div>
+      <div id="unblock-advice-box" class="card hidden" style="background:var(--bg); margin-bottom:12px;">
+        <p id="unblock-advice-text" class="small"></p>
+      </div>
+      <div style="border-top:1px solid var(--border); padding-top:12px;">
+        <label for="sos-room-text">Need real human eyes on your block? Ping #unstuck-sos:</label>
+        <div style="display:flex; gap:8px;">
+          <input id="sos-room-text" type="text" placeholder="Describe your exact roadblock in 1 sentence..." />
+          <button id="send-sos-btn" class="btn btn-danger btn-sm">Ping Room</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast" class="toast hidden"></div>
+
+  <script type="module" src="./js/app.js"></script>
+</body>
+</html>

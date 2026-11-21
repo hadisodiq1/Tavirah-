@@ -1,0 +1,16 @@
+{
+  "name": "Tavirah OS — Vision to Reality",
+  "short_name": "Tavirah OS",
+  "description": "The daily execution operating system and builder network for turning human vision into reality.",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#09090b",
+  "theme_color": "#09090b",
+  "icons": [
+    {
+      "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 128 128'%3E%3Crect width='128' height='128' rx='28' fill='%2309090b'/%3E%3Cpath d='M32 38h64v12H70v46H58V50H32V38z' fill='%23f59e0b'/%3E%3Ccircle cx='92' cy='86' r='8' fill='%23ffffff'/%3E%3C/svg%3E",
+      "sizes": "192x192",
+      "type": "image/svg+xml"
+    }
+  ]
+}
