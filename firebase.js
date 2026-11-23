@@ -1,6 +1,9 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/13.3.0/firebase-app.js";
 import {
   getAuth,
+  GoogleAuthProvider,
+  signInWithPopup,
+  sendPasswordResetEmail,
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
   signOut,
@@ -15,6 +18,8 @@ import {
   updateDoc,
   addDoc,
   deleteDoc,
+  writeBatch,
+  runTransaction,
   collection,
   query,
   orderBy,
@@ -31,7 +36,7 @@ const firebaseConfig = {
   projectId: "tavirah-os",
   storageBucket: "tavirah-os.firebasestorage.app",
   messagingSenderId: "677812755983",
-  appId: "1:677812755983:web:71438497f728a72cad8d7a"
+  appId: "1:71438497f728a72cad8d7a"
 };
 
 export const FOUNDER_UID = "eDfdVfWey6hECZxISXl3x3qJcpo1";
@@ -39,8 +44,11 @@ export const FOUNDER_UID = "eDfdVfWey6hECZxISXl3x3qJcpo1";
 const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
 export const db = getFirestore(app);
+export const googleProvider = new GoogleAuthProvider();
 
 export {
+  signInWithPopup,
+  sendPasswordResetEmail,
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
   signOut,
@@ -52,6 +60,8 @@ export {
   updateDoc,
   addDoc,
   deleteDoc,
+  writeBatch,
+  runTransaction,
   collection,
   query,
   orderBy,
