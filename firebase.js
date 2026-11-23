@@ -36,7 +36,7 @@ const firebaseConfig = {
   projectId: "tavirah-os",
   storageBucket: "tavirah-os.firebasestorage.app",
   messagingSenderId: "677812755983",
-  appId: "1:71438497f728a72cad8d7a"
+  appId: "1:677812755983:web:71438497f728a72cad8d7a"
 };
 
 export const FOUNDER_UID = "eDfdVfWey6hECZxISXl3x3qJcpo1";
