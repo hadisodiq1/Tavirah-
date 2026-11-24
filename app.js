@@ -1,7 +1,9 @@
 import {
   auth,
   db,
-  FOUNDER_UID,
+  googleProvider,
+  signInWithPopup,
+  sendPasswordResetEmail,
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
   signOut,
@@ -13,6 +15,7 @@ import {
   updateDoc,
   addDoc,
   deleteDoc,
+  writeBatch,
   collection,
   query,
   orderBy,
@@ -21,25 +24,29 @@ import {
   getDocs,
   serverTimestamp
 } from "./firebase.js";
-
 import {
   esc,
   shortVision,
   todayStr,
+  daysBetween,
   BARRIER_LABELS,
-  UNBLOCK_ADVICE,
+  classifyVisionArchetype,
   generateStarterSetup,
-  runStressDiagnostic,
-  buildSynthesizedPrompt
+  runGroundCheck,
+  getSunbeamContext,
+  synthesizeSunbeamAction,
+  computeAdaptiveUpdate,
+  analyzeForestPulse,
+  computeTreeState,
+  renderLivingTreeSVG,
+  computeMyceliumMatches
 } from "./engines.js";
-
 import {
   isFounderUser,
   loadFounderTelemetry,
   pushFounderAnnouncement,
   pushFounderProtocol
 } from "./founder.js";
-
 // APP STATE
 let currentUser = null;
 let userData = null;
@@ -51,124 +58,91 @@ let unsubProofs = null;
 let unsubChat = null;
 let unsubConfig = null;
 let cachedBuilders = [];
-
-// FOCUS SPRINT TIMER STATE
-let sprintSeconds = 25 * 60;
-let sprintInterval = null;
-
-const DEFAULT_ROOMS = [
-  { id: "daily-proof", name: "#daily-proof", desc: "Share completed daily moves" },
-  { id: "unstuck-sos", name: "#unstuck-sos", desc: "Get real human help on roadblocks" },
-  { id: "skill-swap", name: "#skill-swap", desc: "Trade skills & collaborate" },
-  { id: "lounge", name: "#open-lounge", desc: "Connect with builders worldwide" }
+let lastSunbeamOutput = null;
+let pendingSuggestedStep = "";
+let isSubmittingProof = false;
+// ONBOARDING STATE
+const onbWeather = { capital: "zero", hours: "low", stage: "idea" };
+let onbBarrier = "clarity";
+// DRIFT-FREE TIMESTAMP FOCUS TIMER STATE
+let focusDurationSecs = 25 * 60;
+let focusRemainingSecs = 25 * 60;
+let focusEndTimeMs = null;
+let focusInterval = null;
+const FOREST_CIRCLES = [
+  { id: "daily-proof", name: "#todays-proof", desc: "Share real outcomes from today" },
+  { id: "unstuck-sos", name: "#in-the-shade", desc: "Ask The Forest when blocked" },
+  { id: "skill-swap", name: "#strength-swap", desc: "Trade skills & collaborate" },
+  { id: "lounge", name: "#around-the-fire", desc: "Open conversation & warmth" }
 ];
-
-// TOAST HELPER
+// SAFE ERROR WRAPPER & TOAST
 let toastTimer = null;
 function showToast(msg) {
   const el = document.getElementById("toast");
   el.textContent = msg;
   el.classList.remove("hidden");
   clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => el.classList.add("hidden"), 3400);
+  toastTimer = setTimeout(() => el.classList.add("hidden"), 3800);
 }
-
-// FOCUS SPRINT TIMER
-function renderTimerDisplay() {
-  const display = document.getElementById("sprint-timer-display");
-  if (!display) return;
-  const mins = String(Math.floor(sprintSeconds / 60)).padStart(2, "0");
-  const secs = String(sprintSeconds % 60).padStart(2, "0");
-  display.textContent = mins + ":" + secs;
+async function safeAction(fn, errorPrefix = "Something went wrong") {
+  try {
+    return await fn();
+  } catch (err) {
+    console.error(err);
+    showToast(`${errorPrefix}: ${err?.message || "Please try again."}`);
+    return null;
+  }
 }
-
-function setTimerMinutes(minutes) {
-  clearInterval(sprintInterval);
-  sprintInterval = null;
-  sprintSeconds = minutes * 60;
-  document.getElementById("sprint-start-btn").classList.remove("hidden");
-  document.getElementById("sprint-pause-btn").classList.add("hidden");
-  renderTimerDisplay();
-}
-
-document.getElementById("sprint-preset-15").addEventListener("click", () => setTimerMinutes(15));
-document.getElementById("sprint-preset-25").addEventListener("click", () => setTimerMinutes(25));
-document.getElementById("sprint-reset-btn").addEventListener("click", () => setTimerMinutes(25));
-
-document.getElementById("sprint-start-btn").addEventListener("click", () => {
-  if (sprintInterval || sprintSeconds <= 0) return;
-  document.getElementById("sprint-start-btn").classList.add("hidden");
-  document.getElementById("sprint-pause-btn").classList.remove("hidden");
-
-  sprintInterval = setInterval(() => {
-    if (sprintSeconds <= 1) {
-      clearInterval(sprintInterval);
-      sprintInterval = null;
-      sprintSeconds = 0;
-      renderTimerDisplay();
-      document.getElementById("sprint-start-btn").classList.remove("hidden");
-      document.getElementById("sprint-pause-btn").classList.add("hidden");
-      showToast("Focus Sprint complete! Log your Proof-of-Reality below.");
-      return;
-    }
-    sprintSeconds -= 1;
-    renderTimerDisplay();
-  }, 1000);
-});
-
-document.getElementById("sprint-pause-btn").addEventListener("click", () => {
-  clearInterval(sprintInterval);
-  sprintInterval = null;
-  document.getElementById("sprint-start-btn").classList.remove("hidden");
-  document.getElementById("sprint-pause-btn").classList.add("hidden");
-});
-
-// VIEW & SUBTAB SWITCHING
+// STRICT VIEW ROUTER (GUARDS FOUNDER VIEW)
 function switchView(viewName) {
+  if (viewName === "founder" && !isFounderUser(currentUser)) {
+    showToast("Access restricted.");
+    return;
+  }
   document.querySelectorAll(".view").forEach((v) => v.classList.add("hidden"));
   const target = document.getElementById(`view-${viewName}`);
   if (target) target.classList.remove("hidden");
-
   document.querySelectorAll(".nav-btn[data-view]").forEach((b) => {
     b.classList.toggle("active", b.dataset.view === viewName);
   });
-
-  if (viewName === "network") loadBuildersDirectory();
-  if (viewName === "chat") subscribeToRoom(activeRoom);
+  if (viewName === "forest") loadBuildersDirectory();
   if (viewName === "founder" && isFounderUser(currentUser)) {
     loadFounderTelemetry(liveConfig);
   }
 }
-
-function switchEngine(engineName) {
-  document.querySelectorAll(".engine-panel").forEach((p) => p.classList.add("hidden"));
-  const panel = document.getElementById(`engine-${engineName}`);
-  if (panel) panel.classList.remove("hidden");
-
-  document.querySelectorAll(".subtab[data-engine]").forEach((t) => {
-    t.classList.toggle("active", t.dataset.engine === engineName);
-  });
-}
-
-// AUTH UI TOGGLES
+// AUTH: GOOGLE + EMAIL + FORGOT PASSWORD
+document.getElementById("google-signin-btn").addEventListener("click", async () => {
+  const errEl = document.getElementById("auth-error");
+  errEl.classList.add("hidden");
+  try {
+    await signInWithPopup(auth, googleProvider);
+  } catch (err) {
+    let msg = err.message.replace("Firebase:", "").trim();
+    if (err.code === "auth/popup-blocked" || err.code === "auth/cancelled-popup-request") {
+      msg = "Popup blocked. Allow popups or sign in with Email below.";
+    } else if (err.code === "auth/disallowed_useragent") {
+      msg = "TikTok's built-in browser blocks Google sign-in. Open in Chrome/Safari or use Email below.";
+    }
+    errEl.textContent = msg;
+    errEl.classList.remove("hidden");
+  }
+});
 document.getElementById("tab-signin").addEventListener("click", () => {
   isSignupMode = false;
   document.getElementById("tab-signin").classList.add("active");
   document.getElementById("tab-signup").classList.remove("active");
   document.getElementById("signup-name-field").classList.add("hidden");
-  document.getElementById("auth-submit-btn").textContent = "Enter Tavirah OS";
+  document.getElementById("auth-submit-btn").textContent = "Enter Tavirah";
   document.getElementById("auth-error").classList.add("hidden");
 });
-
 document.getElementById("tab-signup").addEventListener("click", () => {
   isSignupMode = true;
   document.getElementById("tab-signup").classList.add("active");
   document.getElementById("tab-signin").classList.remove("active");
   document.getElementById("signup-name-field").classList.remove("hidden");
-  document.getElementById("auth-submit-btn").textContent = "Create Builder Account";
+  document.getElementById("auth-submit-btn").textContent = "Create Account";
   document.getElementById("auth-error").classList.add("hidden");
 });
-
 document.getElementById("auth-form").addEventListener("submit", async (e) => {
   e.preventDefault();
   const email = document.getElementById("auth-email").value.trim();
@@ -176,7 +150,6 @@ document.getElementById("auth-form").addEventListener("submit", async (e) => {
   const name = document.getElementById("auth-name").value.trim() || "Builder";
   const errEl = document.getElementById("auth-error");
   errEl.classList.add("hidden");
-
   try {
     if (isSignupMode) {
       const cred = await createUserWithEmailAndPassword(auth, email, password);
@@ -189,16 +162,92 @@ document.getElementById("auth-form").addEventListener("submit", async (e) => {
     errEl.classList.remove("hidden");
   }
 });
-
-document.getElementById("logout-btn").addEventListener("click", async () => {
-  await signOut(auth);
+document.getElementById("forgot-pw-btn").addEventListener("click", () => {
+  const emailTyped = document.getElementById("auth-email").value.trim();
+  if (emailTyped) document.getElementById("reset-email").value = emailTyped;
+  document.getElementById("reset-panel").classList.remove("hidden");
 });
-
-// SYNC PUBLIC BUILDER DIRECTORY CARD (NO SENSITIVE DATA)
-async function syncBuilderPublicCard(data) {
+document.getElementById("cancel-reset-btn").addEventListener("click", () => {
+  document.getElementById("reset-panel").classList.add("hidden");
+});
+document.getElementById("send-reset-btn").addEventListener("click", async () => {
+  const email = document.getElementById("reset-email").value.trim();
+  if (!email) return showToast("Enter your account email first.");
+  await safeAction(async () => {
+    await sendPasswordResetEmail(auth, email);
+    document.getElementById("reset-panel").classList.add("hidden");
+    showToast("Recovery link sent! Check your inbox or spam folder.");
+  }, "Could not send recovery email");
+});
+document.getElementById("logout-btn").addEventListener("click", () => safeAction(() => signOut(auth), "Sign out failed"));
+// ONBOARDING 3-STEP FLOW
+function setOnboardingStep(stepNum) {
+  [1, 2, 3].forEach((n) => {
+    document.getElementById(`onb-step-${n}`).classList.toggle("hidden", n !== stepNum);
+    document.querySelector(`.breath-dot[data-dot="${n}"]`).classList.toggle("active", n <=stepNum);
+  });
+}
+document.getElementById("onb-next-1").addEventListener("click", () => {
+  const t = document.getElementById("onb-title").value.trim();
+  const w = document.getElementById("onb-why").value.trim();
+  if (!t || !w) return showToast("Enter your goal headline and why it matters.");
+  setOnboardingStep(2);
+});
+document.getElementById("onb-back-2").addEventListener("click", () => setOnboardingStep(1));
+document.getElementById("onb-next-2").addEventListener("click", () => setOnboardingStep(3));
+document.getElementById("onb-back-3").addEventListener("click", () => setOnboardingStep(2));
+document.querySelectorAll(".pill-choice").forEach((btn) => {
+  btn.addEventListener("click", () => {
+    const grp = btn.dataset.group;
+    onbWeather[grp] = btn.dataset.val;
+    document.querySelectorAll(`.pill-choice[data-group="${grp}"]`).forEach((b) => {
+      b.classList.toggle("selected", b === btn);
+    });
+  });
+});
+document.querySelectorAll(".barrier-card[data-barrier]").forEach((btn) => {
+  btn.addEventListener("click", () => {
+    onbBarrier = btn.dataset.barrier;
+    document.querySelectorAll(".barrier-card[data-barrier]").forEach((b) => {
+      b.classList.toggle("selected", b === btn);
+    });
+  });
+});
+document.getElementById("onb-finish-btn").addEventListener("click", async () => {
+  const visionTitle = document.getElementById("onb-title").value.trim();
+  const visionWhy = document.getElementById("onb-why").value.trim();
+  const publicProfile = document.getElementById("onb-public-optin").checked;
+  const starter = generateStarterSetup(visionTitle, visionWhy, onbWeather, onbBarrier);
+  const fearMap = { fear: "perfectionism", identity: "judgment", capital: "resources", clarity: "clarity", isolation: "clarity" };
+  const groundReading = runGroundCheck({ visionTitle, visionWhy }, { ...onbWeather, fear: fearMap[onbBarrier] || "clarity" });
+  const updates = {
+    visionTitle,
+    visionWhy,
+    primaryBarrier: onbBarrier,
+    publicProfile,
+    weather: { ...onbWeather },
+    stressTest: groundReading,
+    todayMove: { text: starter.todayMoveText, completedToday: false, updatedDate: todayStr(0) },
+    milestones: starter.milestones
+  };
+  await safeAction(async () => {
+    await updateDoc(doc(db, "users", currentUser.uid), updates);
+    await syncBuilderVisibility({ ...userData, ...updates });
+    document.getElementById("onboarding-screen").classList.add("hidden");
+    document.getElementById("app-shell").classList.remove("hidden");
+    showToast("Goal set! Here is your most useful step today.");
+  }, "Could not save onboarding");
+});
+// STRICT OPT-IN PUBLIC DIRECTORY SYNC (DELETES PUBLIC DOC IF OPTED OUT)
+async function syncBuilderVisibility(data) {
   if (!currentUser || !data) return;
+  const builderRef = doc(db, "builders", currentUser.uid);
+  if (!data.publicProfile) {
+    await deleteDoc(builderRef).catch(() => {});
+    return;
+  }
   await setDoc(
-    doc(db, "builders", currentUser.uid),
+    builderRef,
     {
       uid: currentUser.uid,
       displayName: data.displayName || currentUser.displayName || "Builder",
@@ -208,83 +257,77 @@ async function syncBuilderPublicCard(data) {
       totalProofs: Number(data.totalProofs || 0),
       skillsOffer: data.skillsOffer || "",
       skillsNeed: data.skillsNeed || "",
-      fearsDefeatedCount: (data.fearsConquered || []).length,
-      experimentsCount: (data.experiments || []).length,
       updatedAt: new Date().toISOString()
     },
     { merge: true }
   );
 }
-
 // AUTH STATE LISTENER
 onAuthStateChanged(auth, async (user) => {
   cleanupListeners();
   currentUser = user;
-
   if (!user) {
     document.getElementById("auth-screen").classList.remove("hidden");
+    document.getElementById("onboarding-screen").classList.add("hidden");
     document.getElementById("app-shell").classList.add("hidden");
     return;
   }
-
   document.getElementById("auth-screen").classList.add("hidden");
-  document.getElementById("app-shell").classList.remove("hidden");
-
   const founder = isFounderUser(user);
   document.getElementById("nav-founder-btn").classList.toggle("hidden", !founder);
   document.getElementById("mobile-founder-btn").classList.toggle("hidden", !founder);
-
   const userRef = doc(db, "users", user.uid);
-  const snap = await getDoc(userRef);
-
+  const snap = await safeAction(() => getDoc(userRef), "Failed to load profile");
+  if (!snap) return;
   if (!snap.exists()) {
     const initialDoc = {
       uid: user.uid,
-      displayName: user.displayName || user.email.split("@")[0],
+      displayName: user.displayName || (user.email ? user.email.split("@")[0] : "Builder"),
       visionTitle: "",
       visionWhy: "",
       primaryBarrier: "clarity",
+      publicProfile: false,
+      mutedUids: [],
+      weather: { capital: "zero", hours: "low", stage: "idea" },
       streak: 0,
       totalProofs: 0,
       lastProofDate: "",
+      lastOutcome: "",
       todayMove: { text: "", completedToday: false, updatedDate: todayStr(0) },
       milestones: [],
       fearsConquered: [],
-      skills: [],
       experiments: [],
       skillsOffer: "",
       skillsNeed: "",
       stressTest: null,
       createdAt: new Date().toISOString()
     };
-    await setDoc(userRef, initialDoc);
-    await syncBuilderPublicCard(initialDoc);
+    await safeAction(() => setDoc(userRef, initialDoc), "Could not initialize account");
   }
-
   unsubUser = onSnapshot(userRef, (docSnap) => {
     if (!docSnap.exists()) return;
     userData = docSnap.data();
-    renderAllUserViews();
-
     if (!userData.visionTitle) {
-      document.getElementById("vision-modal").classList.remove("hidden");
+      document.getElementById("app-shell").classList.add("hidden");
+      document.getElementById("onboarding-screen").classList.remove("hidden");
+      setOnboardingStep(1);
+      return;
     }
+    document.getElementById("onboarding-screen").classList.add("hidden");
+    document.getElementById("app-shell").classList.remove("hidden");
+    renderAllViews();
   });
-
   unsubProofs = onSnapshot(
     query(collection(db, "users", user.uid, "proofs"), orderBy("createdAt", "desc"), limit(50)),
-    (snapList) => renderProofTimeline(snapList)
+    (snapList) => renderGrowthRings(snapList)
   );
-
   unsubConfig = onSnapshot(doc(db, "system_config", "live_updates"), (cfgSnap) => {
     liveConfig = cfgSnap.exists() ? cfgSnap.data() : {};
     renderLiveConfig();
   });
-
   renderRoomTabs();
-  switchView("command");
+  switchView("today");
 });
-
 function cleanupListeners() {
   if (unsubUser) unsubUser();
   if (unsubProofs) unsubProofs();
@@ -292,460 +335,345 @@ function cleanupListeners() {
   if (unsubConfig) unsubConfig();
   unsubUser = unsubProofs = unsubChat = unsubConfig = null;
 }
-
-// RENDER USER STATE ACROSS VIEWS
-function renderAllUserViews() {
+// RENDER ALL VIEWS
+function renderAllViews() {
   if (!userData) return;
-
   const name = userData.displayName || "Builder";
-  document.getElementById("sidebar-user-tag").textContent = `${name} • ${userData.streak || 0}d streak`;
-
-  // North Star
-  document.getElementById("cmd-vision-title").textContent =
-    userData.visionTitle || "Click 'Edit North Star' to lock your vision";
-  document.getElementById("cmd-vision-why").textContent = userData.visionWhy || "";
-  document.getElementById("cmd-barrier-badge").textContent =
-    `Primary Block: ${BARRIER_LABELS[userData.primaryBarrier] || "—"}`;
-
-  // Stats
-  document.getElementById("stat-streak").textContent = `${userData.streak || 0} days`;
-  document.getElementById("stat-proofs").textContent = userData.totalProofs || 0;
-  const mastery = (userData.fearsConquered || []).length + (userData.experiments || []).length;
-  document.getElementById("stat-mastery").textContent = mastery;
-
-  // Today's Move
-  const isToday = userData.todayMove?.updatedDate === todayStr(0);
-  const completedToday = isToday && Boolean(userData.todayMove?.completedToday);
-  const moveInput = document.getElementById("today-move-input");
-  if (document.activeElement !== moveInput) {
-    moveInput.value = userData.todayMove?.text || "";
+  const tree = computeTreeState(userData);
+  const arch = classifyVisionArchetype(userData.visionTitle, userData.visionWhy);
+  document.getElementById("sidebar-user-tag").textContent = `${name} • ${tree.stage.emoji} ${tree.roots} roots`;
+  document.getElementById("today-greeting").textContent = `Welcome back, ${name}.`;
+  document.getElementById("today-stage-pill").textContent = `${tree.stage.emoji} ${tree.stage.name} • ${userData.streak || 0}d streak`;
+  const completedToday = userData.todayMove?.updatedDate === todayStr(0) && Boolean(userData.todayMove?.completedToday);
+  const rootsCirc = 477.5;
+  const todayCirc = 351.8;
+  document.getElementById("ring-roots-circle").style.strokeDashoffset = rootsCirc - (rootsCirc *
+tree.rootDepthPct) / 100;
+  document.getElementById("ring-today-circle").style.strokeDashoffset = completedToday ? 0 : todayCirc * 0.85;
+  document.getElementById("ring-stage-emoji").textContent = tree.stage.emoji;
+  document.getElementById("ring-roots-pct").textContent = `${tree.rootDepthPct}% Roots`;
+  document.getElementById("today-ring-label").textContent = completedToday ? "Logged Today ✓" : "Open Today";
+  document.getElementById("today-vision-label").textContent = shortVision(userData.visionTitle, 42);
+  document.getElementById("today-archetype-pill").textContent = arch.label;
+  document.getElementById("today-step-display").textContent =
+    userData.todayMove?.text || "Open Sunbeam Clarity or edit your step for today.";
+  if (document.activeElement !== document.getElementById("today-move-input")) {
+    document.getElementById("today-move-input").value = userData.todayMove?.text || "";
   }
-
-  const badge = document.getElementById("today-status-badge");
-  badge.textContent = completedToday ? "Shipped Today ✓" : "Ready to Build";
-  badge.className = completedToday ? "badge badge-green" : "badge badge-accent";
-
-  // Guided three-step journey
-  const step1 = document.getElementById("step-1-pill");
-  const step2 = document.getElementById("step-2-pill");
-  const step3 = document.getElementById("step-3-pill");
-  step1.classList.toggle("done", Boolean(userData.visionTitle));
-  step1.textContent = userData.visionTitle ? "1. Vision Locked ✓" : "1. Lock Vision";
-  step2.classList.toggle("done", Boolean(userData.stressTest));
-  step2.textContent = userData.stressTest ? "2. Stress-Tested ✓" : "2. Run Reality Stress-Test";
-  step3.classList.toggle("done", completedToday);
-  step3.textContent = completedToday ? "3. Proof Logged Today ✓" : "3. Execute & Log Today's Proof";
-
-  const summary = document.getElementById("cmd-stress-summary");
-  if (summary && userData.stressTest) {
-    summary.textContent = "Readiness " + userData.stressTest.score + "/100 • Bottleneck: " + userData.stressTest.bottleneck;
-  }
-
-  // Milestones Preview + Engine 2
-  renderMilestones();
-  renderStressTestSaved();
-  renderFearBreaks();
-  renderSkills();
-  renderExperiments();
-
-  // Engine 6 Prompt Synthesizer
-  document.getElementById("ai-synth-prompt").value = buildSynthesizedPrompt(userData);
-}
-
-// VISION MODAL
-const openVisionModal = () => {
-  document.getElementById("v-title").value = userData?.visionTitle || "";
-  document.getElementById("v-why").value = userData?.visionWhy || "";
-  document.getElementById("v-barrier").value = userData?.primaryBarrier || "clarity";
-  document.getElementById("vision-modal").classList.remove("hidden");
-};
-
-document.getElementById("edit-vision-btn").addEventListener("click", openVisionModal);
-document.getElementById("step-1-pill").addEventListener("click", openVisionModal);
-document.getElementById("step-3-pill").addEventListener("click", () => {
-  document.getElementById("today-move-input").focus();
-});
-
-document.getElementById("close-vision-modal").addEventListener("click", () => {
-  document.getElementById("vision-modal").classList.add("hidden");
-});
-
-document.getElementById("vision-form").addEventListener("submit", async (e) => {
-  e.preventDefault();
-  const visionTitle = document.getElementById("v-title").value.trim();
-  const visionWhy = document.getElementById("v-why").value.trim();
-  const primaryBarrier = document.getElementById("v-barrier").value;
-  const updates = { visionTitle, visionWhy, primaryBarrier };
-
-  // Create a starter move and roadmap only when the builder has none.
-  const starter = generateStarterSetup(visionTitle, primaryBarrier);
-  let generatedAnything = false;
-
-  if (!userData?.todayMove?.text) {
-    updates.todayMove = {
-      text: starter.todayMoveText,
-      completedToday: false,
-      updatedDate: todayStr(0)
-    };
-    generatedAnything = true;
-  }
-  if (!userData?.milestones || userData.milestones.length === 0) {
-    updates.milestones = starter.milestones;
-    generatedAnything = true;
-  }
-
-  await updateDoc(doc(db, "users", currentUser.uid), updates);
-  await syncBuilderPublicCard({ ...userData, ...updates });
-  document.getElementById("vision-modal").classList.add("hidden");
-  showToast(
-    generatedAnything
-      ? "Vision locked! Starter milestones & Today's Move generated for you."
-      : "North Star Vision updated."
-  );
-});
-
-// TODAY'S MOVE & PROOF LOGGING
-document.getElementById("save-today-move-btn").addEventListener("click", async () => {
-  const text = document.getElementById("today-move-input").value.trim();
-  if (!text) return showToast("Write your single move for today first.");
-  await updateDoc(doc(db, "users", currentUser.uid), {
-    todayMove: {
-      text,
-      completedToday: userData.todayMove?.updatedDate === todayStr(0) ? Boolean(userData.todayMove?.completedToday) : false,
-      updatedDate: todayStr(0)
-    }
-  });
-  showToast("Today's Unbreakable Move locked.");
-});
-
-async function submitDailyProof(shareToRoom) {
-  const moveText = document.getElementById("today-move-input").value.trim();
-  const proofNote = document.getElementById("proof-note-input").value.trim();
-  if (!proofNote) return showToast("Write 1 concrete sentence of proof before logging.");
-
-  const today = todayStr(0);
-  const yesterday = todayStr(-1);
-  let newStreak = userData.streak || 0;
-
-  if (userData.lastProofDate === today) {
-    newStreak = Math.max(1, newStreak);
-  } else if (userData.lastProofDate === yesterday) {
-    newStreak += 1;
+  // Next Milestone with real due date label
+  const openStone = (userData.milestones || []).find((m) => !m.done);
+  if (openStone) {
+    const dueLabel = formatDueDateLabel(openStone.dueDate, openStone.targetDays);
+    document.getElementById("next-stone-label").textContent = `${openStone.title} (${dueLabel})`;
   } else {
-    newStreak = 1;
+    document.getElementById("next-stone-label").textContent = "All current milestones completed.";
   }
-
-  const newTotal = (userData.totalProofs || 0) + 1;
-
-  await addDoc(collection(db, "users", currentUser.uid, "proofs"), {
-    move: moveText || "Daily Reality Execution",
-    note: proofNote,
-    date: today,
-    createdAt: serverTimestamp()
-  });
-
-  const updates = {
-    streak: newStreak,
-    totalProofs: newTotal,
-    lastProofDate: today,
-    todayMove: {
-      text: moveText,
-      completedToday: true,
-      updatedDate: today
+  renderForestPulse();
+  // Space 2: Living Tree (Honest counts)
+  document.getElementById("living-tree-svg").innerHTML = renderLivingTreeSVG(tree);
+  document.getElementById("tree-stage-title").textContent = `Stage: ${tree.stage.name}`;
+  document.getElementById("tree-stage-subtitle").textContent = tree.stage.subtitle;
+  document.getElementById("tree-roots-count").textContent = tree.roots;
+  document.getElementById("tree-trunk-count").textContent = tree.trunk;
+  document.getElementById("tree-canopy-count").textContent = tree.leaves;
+  renderTestsList();
+  renderFearsList();
+  renderMilestones();
+  // Forest Opt-In Checkbox & Skill inputs
+  document.getElementById("forest-public-toggle").checked = Boolean(userData.publicProfile);
+  if (document.activeElement !== document.getElementById("profile-offer")) {
+    document.getElementById("profile-offer").value = userData.skillsOffer || "";
+  }
+  if (document.activeElement !== document.getElementById("profile-need")) {
+    document.getElementById("profile-need").value = userData.skillsNeed || "";
+  }
+}
+function formatDueDateLabel(dueDate, legacyDays) {
+  if (!dueDate) return legacyDays ? `${legacyDays}d target` : "No date";
+  const diff = daysBetween(todayStr(0), dueDate);
+  if (diff < 0) return `Overdue by ${Math.abs(diff)}d`;
+  if (diff === 0) return "Due today";
+  return `Due in ${diff}d`;
+}
+// FOREST PULSE
+function renderForestPulse() {
+  const pulse = analyzeForestPulse(userData);
+  const card = document.getElementById("forest-pulse-card");
+  if (!pulse) {
+    card.classList.add("hidden");
+    return;
+  }
+  card.classList.remove("hidden");
+  document.getElementById("pulse-badge").textContent = pulse.badge;
+  document.getElementById("pulse-title").textContent = pulse.title;
+  document.getElementById("pulse-message").textContent = pulse.message;
+  const btn = document.getElementById("pulse-action-btn");
+  btn.textContent = pulse.cta;
+  btn.onclick = async () => {
+    if (pulse.actionType === "shrink") {
+      const tiny = `Spend just 5 calm minutes on "${shortVision(userData.visionTitle, 32)}" today`;
+      await safeAction(() => updateDoc(doc(db, "users", currentUser.uid), {
+        todayMove: { text: tiny, completedToday: false, updatedDate: todayStr(0) }
+      }), "Could not update step");
+      showToast("Shrunk to a 5-minute restart step.");
+    } else if (pulse.actionType === "focus") {
+      openFocusSanctuary();
+    } else if (pulse.actionType === "rock-fear") {
+      openRockModal("fear");
+    } else if (pulse.actionType === "rock-test") {
+      openRockModal("test");
+    } else if (pulse.actionType === "forest") {
+      switchView("forest");
     }
   };
-  await updateDoc(doc(db, "users", currentUser.uid), updates);
-  await syncBuilderPublicCard({ ...userData, ...updates });
-
-  if (shareToRoom) {
-    await addDoc(collection(db, "rooms", "daily-proof", "messages"), {
-      uid: currentUser.uid,
-      authorName: userData.displayName || "Builder",
-      authorVision: shortVision(userData.visionTitle || "Building", 30),
-      authorStreak: newStreak,
-      type: "proof",
-      text: `Brick #${newTotal} (${newStreak}d streak): ${proofNote}`,
+}
+// INLINE STEP EDIT
+document.getElementById("edit-step-toggle").addEventListener("click", () => {
+  document.getElementById("today-step-edit-box").classList.toggle("hidden");
+});
+document.getElementById("save-today-move-btn").addEventListener("click", async () => {
+  const text = document.getElementById("today-move-input").value.trim();
+  if (!text) return showToast("Write your step first.");
+  await safeAction(async () => {
+    await updateDoc(doc(db, "users", currentUser.uid), {
+      todayMove: {
+        text,
+        completedToday: userData.todayMove?.updatedDate === todayStr(0) ?Boolean(userData.todayMove?.completedToday) : false,
+        updatedDate: todayStr(0)
+      }
+    });
+    document.getElementById("today-step-edit-box").classList.add("hidden");
+    showToast("Today's step updated.");
+  }, "Failed to save step");
+});
+// DRIFT-FREE TIMESTAMP FOCUS TIMER
+function renderFocusClock(secs) {
+  const safe = Math.max(0, secs);
+  const m = String(Math.floor(safe / 60)).padStart(2, "0");
+  const s = String(safe % 60).padStart(2, "0");
+  document.getElementById("focus-timer-display").textContent = `${m}:${s}`;
+}
+function setFocusMinutes(mins) {
+  clearInterval(focusInterval);
+  focusInterval = null;
+  focusEndTimeMs = null;
+  focusDurationSecs = mins * 60;
+  focusRemainingSecs = focusDurationSecs;
+  document.getElementById("focus-toggle-btn").textContent = "Start Quiet Timer";
+  renderFocusClock(focusRemainingSecs);
+}
+function openFocusSanctuary() {
+  document.getElementById("focus-vision-tag").textContent = shortVision(userData?.visionTitle ||"My Goal", 42);
+  document.getElementById("focus-step-title").textContent =
+    userData?.todayMove?.text || "Take one focused step forward.";
+  setFocusMinutes(25);
+  document.getElementById("focus-overlay").classList.remove("hidden");
+}
+document.getElementById("enter-focus-btn").addEventListener("click", openFocusSanctuary);
+document.getElementById("focus-15-btn").addEventListener("click", () => setFocusMinutes(15));
+document.getElementById("focus-25-btn").addEventListener("click", () => setFocusMinutes(25));
+document.getElementById("focus-toggle-btn").addEventListener("click", () => {
+  if (focusInterval) {
+    clearInterval(focusInterval);
+    focusInterval = null;
+    focusRemainingSecs = Math.max(0, Math.ceil((focusEndTimeMs - Date.now()) / 1000));
+    focusEndTimeMs = null;
+    document.getElementById("focus-toggle-btn").textContent = "Resume Timer";
+    return;
+  }
+  focusEndTimeMs = Date.now() + focusRemainingSecs * 1000;
+  document.getElementById("focus-toggle-btn").textContent = "Pause";
+  focusInterval = setInterval(() => {
+    const left = Math.ceil((focusEndTimeMs - Date.now()) / 1000);
+    if (left <= 0) {
+      clearInterval(focusInterval);
+      focusInterval = null;
+      focusRemainingSecs = 0;
+      focusEndTimeMs = null;
+      renderFocusClock(0);
+      document.getElementById("focus-toggle-btn").textContent = "Complete ✓";
+      showToast("Focus session complete! Record what happened when ready.");
+      return;
+    }
+    focusRemainingSecs = left;
+    renderFocusClock(left);
+  }, 500);
+});
+document.getElementById("focus-exit-btn").addEventListener("click", () => {
+  clearInterval(focusInterval);
+  focusInterval = null;
+  document.getElementById("focus-overlay").classList.add("hidden");
+});
+document.getElementById("focus-done-btn").addEventListener("click", () => {
+  clearInterval(focusInterval);
+  focusInterval = null;
+  document.getElementById("focus-overlay").classList.add("hidden");
+  document.getElementById("complete-modal").classList.remove("hidden");
+});
+// OBSERVE -> UPDATE: RECORD WHAT HAPPENED (ATOMIC BATCH + DUPLICATE GUARD)
+document.getElementById("open-complete-btn").addEventListener("click", () => {
+  document.getElementById("complete-modal").classList.remove("hidden");
+});
+document.getElementById("close-complete-btn").addEventListener("click", () => {
+  document.getElementById("complete-modal").classList.add("hidden");
+});
+async function submitObservation(shareToCircle) {
+  if (isSubmittingProof) return;
+  const outcome = document.getElementById("proof-outcome").value;
+  const note = document.getElementById("proof-note-input").value.trim();
+  if (!note) return showToast("Write 1 honest sentence about what happened.");
+  isSubmittingProof = true;
+  const btnA = document.getElementById("complete-only-btn");
+  const btnB = document.getElementById("complete-share-btn");
+  btnA.disabled = btnB.disabled = true;
+  try {
+    const today = todayStr(0);
+    const yesterday = todayStr(-1);
+    const didAct = outcome !== "blocked_self";
+    let newStreak = userData.streak || 0;
+    let newTotal = userData.totalProofs || 0;
+    if (didAct) {
+      if (userData.lastProofDate === today) newStreak = Math.max(1, newStreak);
+      else if (userData.lastProofDate === yesterday) newStreak += 1;
+      else newStreak = 1;
+      newTotal += 1;
+    }
+    const moveText = userData.todayMove?.text || "Daily Step";
+    const batch = writeBatch(db);
+    const proofRef = doc(collection(db, "users", currentUser.uid, "proofs"));
+    batch.set(proofRef, {
+      move: moveText,
+      outcome,
+      note,
+      date: today,
       createdAt: serverTimestamp()
     });
+    const userRef = doc(db, "users", currentUser.uid);
+    const userUpdates = {
+      streak: newStreak,
+      totalProofs: newTotal,
+      lastProofDate: didAct ? today : (userData.lastProofDate || ""),
+      lastOutcome: outcome,
+      todayMove: {
+        text: moveText,
+        completedToday: didAct,
+        updatedDate: today
+      }
+    };
+    batch.update(userRef, userUpdates);
+    if (userData.publicProfile) {
+      batch.set(
+        doc(db, "builders", currentUser.uid),
+        {
+          uid: currentUser.uid,
+          displayName: userData.displayName || "Builder",
+          visionTitle: shortVision(userData.visionTitle || "", 70),
+          primaryBarrier: userData.primaryBarrier || "clarity",
+          streak: newStreak,
+          totalProofs: newTotal,
+          skillsOffer: userData.skillsOffer || "",
+          skillsNeed: userData.skillsNeed || "",
+          updatedAt: new Date().toISOString()
+        },
+        { merge: true }
+      );
+    }
+    if (shareToCircle && didAct) {
+      const msgRef = doc(collection(db, "rooms", "daily-proof", "messages"));
+      batch.set(msgRef, {
+        uid: currentUser.uid,
+        authorName: userData.displayName || "Builder",
+        authorVision: shortVision(userData.visionTitle, 28),
+        authorStreak: newStreak,
+        type: "proof",
+        text: `Action #${newTotal} (${outcome}): ${note}`,
+        createdAt: serverTimestamp()
+      });
+    }
+    await batch.commit();
+    document.getElementById("proof-note-input").value = "";
+    document.getElementById("complete-modal").classList.add("hidden");
+    // Trigger OBSERVE -> UPDATE Next Decision modal
+    const adaptive = computeAdaptiveUpdate(userData, outcome, note);
+    pendingSuggestedStep = adaptive.nextStep;
+    document.getElementById("upd-headline").textContent = adaptive.headline;
+    document.getElementById("upd-reason").textContent = adaptive.reason;
+    document.getElementById("upd-next-step").textContent = adaptive.nextStep;
+    document.getElementById("update-decision-modal").classList.remove("hidden");
+  } catch (err) {
+    console.error(err);
+    showToast("Could not save record: " + (err.message || "Try again."));
+  } finally {
+    isSubmittingProof = false;
+    btnA.disabled = btnB.disabled = false;
   }
-
-  document.getElementById("proof-note-input").value = "";
-  showToast(shareToRoom ? "Proof logged & shared to #daily-proof!" : "Reality Proof logged!");
 }
-
-document.getElementById("complete-proof-btn").addEventListener("click", () => submitDailyProof(false));
-document.getElementById("complete-share-btn").addEventListener("click", () => submitDailyProof(true));
-
-function renderProofTimeline(snapList) {
-  const el = document.getElementById("proof-timeline-list");
+document.getElementById("complete-only-btn").addEventListener("click", () => submitObservation(false));
+document.getElementById("complete-share-btn").addEventListener("click", () => submitObservation(true));
+document.getElementById("upd-accept-btn").addEventListener("click", async () => {
+  if (!pendingSuggestedStep) return;
+  await safeAction(async () => {
+    await updateDoc(doc(db, "users", currentUser.uid), {
+      todayMove: {
+        text: pendingSuggestedStep,
+        completedToday: false,
+        updatedDate: todayStr(0)
+      }
+    });
+    document.getElementById("update-decision-modal").classList.add("hidden");
+    showToast("Next step adapted based on real-world evidence!");
+  }, "Could not update step");
+});
+document.getElementById("upd-keep-btn").addEventListener("click", () => {
+  document.getElementById("update-decision-modal").classList.add("hidden");
+});
+// MY TREE: GROWTH RINGS, TESTS (ONLY OBSERVED COUNT AS LEAVES), FEARS (PLANNED VS FACED)
+function renderGrowthRings(snapList) {
+  const el = document.getElementById("growth-rings-list");
   if (snapList.empty) {
-    el.textContent = "Complete your first Daily Move to lay Brick #1.";
+    el.textContent = "Record what happened today to add your first ring.";
     return;
   }
   el.innerHTML = snapList.docs
     .map((d) => {
       const p = d.data();
+      const badgeCls = p.outcome === "blocked_self" ? "pill-clay" : "pill-moss";
       return `
-        <div class="item-row">
-          <div>
-            <span class="badge badge-green mono">${esc(p.date || "")}</span>
-            <strong style="display:block; margin-top:6px;">${esc(p.move)}</strong>
-            <p class="small muted" style="margin-top:3px;">${esc(p.note)}</p>
+        <div class="soft-row" style="flex-direction:column; gap:4px;">
+          <div style="display:flex; gap:6px; align-items:center;">
+            <span class="pill ${badgeCls}">${esc(p.date || "")}</span>
+            ${p.outcome ? `<span class="pill">${esc(p.outcome.replace("_", " "))}</span>` : ""}
           </div>
+          <strong>${esc(p.move)}</strong>
+          <span class="small muted">${esc(p.note)}</span>
         </div>
       `;
     })
     .join("");
 }
-
-// ENGINE 1: STRESS-TESTER
-document.getElementById("run-stresstest-btn").addEventListener("click", async () => {
-  const inputs = {
-    capital: document.getElementById("st-capital").value,
-    hours: document.getElementById("st-hours").value,
-    stage: document.getElementById("st-stage").value,
-    fear: document.getElementById("st-fear").value
-  };
-  const result = runStressDiagnostic(userData, inputs);
-  await updateDoc(doc(db, "users", currentUser.uid), { stressTest: result });
-  showToast("Reality Diagnostic saved to your workspace.");
-});
-
-function renderStressTestSaved() {
-  const st = userData?.stressTest;
-  const el = document.getElementById("st-results");
-  if (!st) return;
-
-  el.innerHTML = `
-    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
-      <span class="badge badge-accent">READINESS INDEX: ${st.score}/100</span>
-    </div>
-    <h4 style="color:var(--text); margin-bottom:6px;">Single Point of Failure: ${esc(st.bottleneck)}</h4>
-    <p class="small muted" style="margin-bottom:14px;">${esc(st.diagnosis)}</p>
-    <strong class="small" style="display:block; margin-bottom:6px;">Your Minimum Viable Execution Path:</strong>
-    ${(st.mvpPath || [])
-      .map((s, idx) => `<div class="item-row small"><span><strong>${idx + 1}.</strong> ${esc(s)}</span></div>`)
-      .join("")}
-    <button id="apply-step1-btn" class="btn btn-secondary btn-sm" style="margin-top:8px;">Lock Step 1 as Today's Move</button>
-  `;
-
-  document.getElementById("apply-step1-btn")?.addEventListener("click", async () => {
-    const step1 = st.mvpPath?.[0];
-    if (!step1) return;
-    await updateDoc(doc(db, "users", currentUser.uid), {
-      todayMove: { text: step1, completedToday: false, updatedDate: todayStr(0) }
-    });
-    showToast("Step 1 locked into your Daily Command Center!");
-  });
-}
-
-// ENGINE 2: MILESTONES (REVERSE-TIMELINE)
-document.getElementById("add-milestone-btn").addEventListener("click", async () => {
-  const title = document.getElementById("ms-title").value.trim();
-  const targetDays = Number(document.getElementById("ms-days").value);
-  if (!title) return showToast("Enter a concrete milestone deliverable.");
-
-  const list = [...(userData.milestones || []), { id: "ms_" + Date.now(), title, targetDays, done: false }];
-  await updateDoc(doc(db, "users", currentUser.uid), { milestones: list });
-  document.getElementById("ms-title").value = "";
-  showToast("Milestone added.");
-});
-
-function renderMilestones() {
-  const list = userData?.milestones || [];
-  const doneCount = list.filter((m) => m.done).length;
-  const pct = list.length ? Math.round((doneCount / list.length) * 100) : 0;
-
-  document.getElementById("ms-percent").textContent = `${pct}%`;
-  document.getElementById("ms-progress-fill").style.width = `${pct}%`;
-
-  const previewEl = document.getElementById("cmd-milestones-preview");
-  const open = list.filter((m) => !m.done).slice(0, 3);
-  previewEl.innerHTML = open.length
-    ? open.map((m) => `<div style="margin-bottom:4px;">• ${esc(m.title)} <span class="mono">(${m.targetDays}d)</span></div>`).join("")
-    : "No active milestones yet.";
-
-  const listEl = document.getElementById("milestones-list");
-  if (!list.length) {
-    listEl.textContent = "No milestones yet.";
-    return;
-  }
-
-  listEl.innerHTML = list
-    .map(
-      (m) => `
-      <div class="item-row">
-        <div>
-          <span class="badge mono">${m.targetDays}d sprint</span>
-          <div style="margin-top:5px; text-decoration:${m.done ? "line-through" : "none"}; color:${m.done ? "var(--muted)" : "var(--text)"};">
-            ${esc(m.title)}
-          </div>
-        </div>
-        <div style="display:flex; gap:6px;">
-          <button class="btn btn-secondary btn-sm ms-toggle" data-id="${m.id}">${m.done ? "Undo" : "Done"}</button>
-          <button class="btn btn-danger btn-sm ms-del" data-id="${m.id}">×</button>
-        </div>
-      </div>
-    `
-    )
-    .join("");
-
-  listEl.querySelectorAll(".ms-toggle").forEach((btn) =>
-    btn.addEventListener("click", async () => {
-      const updated = list.map((m) => (m.id === btn.dataset.id ? { ...m, done: !m.done } : m));
-      await updateDoc(doc(db, "users", currentUser.uid), { milestones: updated });
-    })
-  );
-
-  listEl.querySelectorAll(".ms-del").forEach((btn) =>
-    btn.addEventListener("click", async () => {
-      const updated = list.filter((m) => m.id !== btn.dataset.id);
-      await updateDoc(doc(db, "users", currentUser.uid), { milestones: updated });
-    })
-  );
-}
-
-// ENGINE 3: FEAR & FRICTION LAB
-document.getElementById("save-fearbreak-btn").addEventListener("click", async () => {
-  const protocol = document.getElementById("fb-protocol").value;
-  const fear = document.getElementById("fb-fear").value.trim();
-  const worstCase = document.getElementById("fb-worst").value.trim();
-  const microStep = document.getElementById("fb-micro").value.trim();
-  if (!fear || !microStep) return showToast("Fill in the action you're avoiding and your 5-min step.");
-
-  const updated = [
-    { id: "fb_" + Date.now(), protocol, fear, worstCase, microStep, conqueredAt: todayStr(0) },
-    ...(userData.fearsConquered || [])
-  ];
-  await updateDoc(doc(db, "users", currentUser.uid), { fearsConquered: updated });
-  await syncBuilderPublicCard({ ...userData, fearsConquered: updated });
-
-  document.getElementById("fb-fear").value = "";
-  document.getElementById("fb-worst").value = "";
-  document.getElementById("fb-micro").value = "";
-  showToast("Block dismantled! Execute your 5-minute step right now.");
-});
-
-function renderFearBreaks() {
-  const list = userData?.fearsConquered || [];
-  const el = document.getElementById("fearbreak-list");
-  if (!list.length) {
-    el.textContent = "No barriers logged yet.";
-    return;
-  }
-  el.innerHTML = list
-    .map(
-      (f) => `
-      <div class="item-row">
-        <div>
-          <span class="badge badge-accent">${esc(f.protocol)}</span>
-          <strong style="display:block; margin-top:5px;">Avoided: ${esc(f.fear)}</strong>
-          <div class="small muted">5-Min Action: ${esc(f.microStep)}</div>
-        </div>
-      </div>
-    `
-    )
-    .join("");
-}
-
-// ENGINE 4: SKILL-GAP MAPPER
-document.getElementById("add-skill-btn").addEventListener("click", async () => {
-  const name = document.getElementById("sk-name").value.trim();
-  const level = document.getElementById("sk-status").value;
-  if (!name) return showToast("Enter a skill name.");
-
-  const updated = [...(userData.skills || []), { id: "sk_" + Date.now(), name, level }];
-  await updateDoc(doc(db, "users", currentUser.uid), { skills: updated });
-  document.getElementById("sk-name").value = "";
-  showToast("Skill mapped.");
-});
-
-document.getElementById("save-swap-profile-btn").addEventListener("click", async () => {
-  const skillsOffer = document.getElementById("profile-offer").value.trim();
-  const skillsNeed = document.getElementById("profile-need").value.trim();
-  await updateDoc(doc(db, "users", currentUser.uid), { skillsOffer, skillsNeed });
-  await syncBuilderPublicCard({ ...userData, skillsOffer, skillsNeed });
-  showToast("Builder Network skill-swap card updated.");
-});
-
-function renderSkills() {
-  if (document.activeElement !== document.getElementById("profile-offer")) {
-    document.getElementById("profile-offer").value = userData?.skillsOffer || "";
-  }
-  if (document.activeElement !== document.getElementById("profile-need")) {
-    document.getElementById("profile-need").value = userData?.skillsNeed || "";
-  }
-
-  const list = userData?.skills || [];
-  const el = document.getElementById("skills-list");
-  if (!list.length) {
-    el.textContent = "No skills mapped yet.";
-    return;
-  }
-  const labels = {
-    learning: ["Learning 20%", "badge-accent"],
-    mastered: ["Can Offer", "badge-green"],
-    swap: ["Seeking Swap", "badge-blue"]
-  };
-  el.innerHTML = list
-    .map((s) => {
-      const [txt, cls] = labels[s.level] || ["Mapped", "badge"];
-      return `
-        <div class="item-row">
-          <div><strong>${esc(s.name)}</strong> <span class="badge ${cls}" style="margin-left:6px;">${txt}</span></div>
-          <button class="btn btn-danger btn-sm sk-del" data-id="${s.id}">×</button>
-        </div>
-      `;
-    })
-    .join("");
-
-  el.querySelectorAll(".sk-del").forEach((btn) =>
-    btn.addEventListener("click", async () => {
-      const updated = list.filter((s) => s.id !== btn.dataset.id);
-      await updateDoc(doc(db, "users", currentUser.uid), { skills: updated });
-    })
-  );
-}
-
-// ENGINE 5: REAL-WORLD EXPERIMENT LAB
-document.getElementById("add-exp-btn").addEventListener("click", async () => {
-  const hypothesis = document.getElementById("exp-hyp").value.trim();
-  const deadline = document.getElementById("exp-deadline").value || todayStr(3);
-  if (!hypothesis) return showToast("Write a clear hypothesis to test.");
-
-  const updated = [
-    { id: "exp_" + Date.now(), hypothesis, deadline, status: "running", lesson: "" },
-    ...(userData.experiments || [])
-  ];
-  await updateDoc(doc(db, "users", currentUser.uid), { experiments: updated });
-  await syncBuilderPublicCard({ ...userData, experiments: updated });
-  document.getElementById("exp-hyp").value = "";
-  showToast("Experiment launched.");
-});
-
-function renderExperiments() {
+function renderTestsList() {
   const list = userData?.experiments || [];
-  const el = document.getElementById("experiments-list");
+  const el = document.getElementById("tree-tests-list");
   if (!list.length) {
-    el.textContent = "No experiments launched yet.";
+    el.textContent = "No assumptions tested yet.";
     return;
   }
   el.innerHTML = list
     .map(
       (ex) => `
-      <div class="item-row" style="flex-direction:column; gap:8px;">
+      <div class="soft-row" style="flex-direction:column; gap:8px;">
         <div style="display:flex; justify-content:space-between; width:100%; align-items:center;">
-          <span class="badge ${ex.status === "validated" ? "badge-green" : ex.status === "pivoted" ? "badge-blue" : "badge-accent"}">${esc(ex.status.toUpperCase())}</span>
-          <span class="small mono muted">Due: ${esc(ex.deadline)}</span>
+          <span class="pill ${ex.status === "validated" ? "pill-moss" : ex.status === "pivoted" ? "pill-sky" : "pill-sun"}">${ex.status === "running" ? "TESTING (0 LEAVES YET)" : esc(ex.status.toUpperCase())}</span>
+          <span class="small muted">${esc(ex.deadline)}</span>
         </div>
-        <div style="font-weight:500;">${esc(ex.hypothesis)}</div>
-        ${ex.lesson ? `<div class="small muted">Lesson: ${esc(ex.lesson)}</div>` : ""}
+        <div>${esc(ex.hypothesis)}</div>
+        ${ex.lesson ? `<div class="small muted">Observed: ${esc(ex.lesson)}</div>` : ""}
         ${
           ex.status === "running"
-            ? `<div style="display:flex; gap:6px; flex-wrap:wrap;">
-                <input type="text" class="exp-lesson-input" data-id="${ex.id}" placeholder="Real-world result / lesson..." style="flex:1; min-width:180px; padding:7px 10px;" />
-                <button class="btn btn-primary btn-sm exp-finish" data-id="${ex.id}" data-status="validated">Validated</button>
-                <button class="btn btn-secondary btn-sm exp-finish" data-id="${ex.id}" data-status="pivoted">Pivoted</button>
+            ? `<div style="display:flex; gap:6px; flex-wrap:wrap; width:100%;">
+                <input type="text" class="exp-lesson-input" data-id="${ex.id}" placeholder="What happened in real life?" style="flex:1; min-width:160px; padding:7px 10px;" />
+                <button class="btn btn-moss btn-sm exp-finish" data-id="${ex.id}" data-status="validated" type="button">Held True</button>
+                <button class="btn btn-glass btn-sm exp-finish" data-id="${ex.id}" data-status="pivoted" type="button">Needs Pivot</button>
                </div>`
             : ""
         }
@@ -753,26 +681,525 @@ function renderExperiments() {
     `
     )
     .join("");
-
   el.querySelectorAll(".exp-finish").forEach((btn) =>
     btn.addEventListener("click", async () => {
       const id = btn.dataset.id;
       const status = btn.dataset.status;
       const input = el.querySelector(`.exp-lesson-input[data-id="${id}"]`);
-      const lesson = input?.value.trim() || "Completed real-world test.";
+      const lesson = input?.value.trim();
+      if (!lesson) return showToast("Write what you observed before finishing this test.");
       const updated = list.map((ex) => (ex.id === id ? { ...ex, status, lesson } : ex));
-      await updateDoc(doc(db, "users", currentUser.uid), { experiments: updated });
-      showToast(`Experiment marked ${status}.`);
+      await safeAction(async () => {
+        await updateDoc(doc(db, "users", currentUser.uid), { experiments: updated });
+        const outcome = status === "validated" ? "worked" : "no_need";
+        const adaptive = computeAdaptiveUpdate(userData, outcome, lesson);
+        pendingSuggestedStep = adaptive.nextStep;
+        document.getElementById("upd-headline").textContent = adaptive.headline;
+        document.getElementById("upd-reason").textContent = adaptive.reason;
+        document.getElementById("upd-next-step").textContent = adaptive.nextStep;
+        document.getElementById("update-decision-modal").classList.remove("hidden");
+        showToast("Observation recorded—your tree grew a leaf!");
+      }, "Failed to save test result");
     })
   );
 }
-
-// ENGINE 6: COPY AI PROMPT
-document.getElementById("copy-synth-btn").addEventListener("click", async () => {
-  await navigator.clipboard.writeText(document.getElementById("ai-synth-prompt").value);
-  showToast("Personalized AI Co-Founder prompt copied!");
+function renderFearsList() {
+  const list = userData?.fearsConquered || [];
+  const el = document.getElementById("tree-fears-list");
+  if (!list.length) {
+    el.textContent = "No fear resets planned yet.";
+    return;
+  }
+  el.innerHTML = list
+    .map((f) => {
+      const faced = !f.status || f.status === "faced";
+      return `
+        <div class="soft-row" style="flex-direction:column; gap:6px;">
+          <div style="display:flex; justify-content:space-between; width:100%; align-items:center;">
+            <span class="pill ${faced ? "pill-moss" : "pill-sun"}">${faced ? "FACED ✓ (TRUNK GROWN)" : "PLANNED (NOT FACED YET)"}</span>
+          </div>
+          <strong>Avoided: ${esc(f.fear)}</strong>
+          <span class="small muted">5-Min Action: ${esc(f.microStep)}</span>
+          ${!faced ? `<button class="btn btn-moss btn-sm mark-fear-faced" data-id="${f.id}" type="button">I Actually Faced This ✓</button>` : ""}
+        </div>
+      `;
+    })
+    .join("");
+  el.querySelectorAll(".mark-fear-faced").forEach((btn) =>
+    btn.addEventListener("click", async () => {
+      const updated = list.map((f) =>
+        f.id === btn.dataset.id ? { ...f, status: "faced", facedAt: todayStr(0) } : f
+      );
+      await safeAction(() => updateDoc(doc(db, "users", currentUser.uid), { fearsConquered: updated }), "Could not update fear");
+      showToast("Courage proven! Your tree trunk just thickened.");
+    })
+  );
+}
+// THE SUNBEAM STUDIO
+function openSunbeamStudio() {
+  const ctx = getSunbeamContext(userData);
+  document.getElementById("sb-archetype-badge").textContent = `Path: ${ctx.archetypeLabel}`;
+  document.getElementById("sb-weather-badge").textContent = `Obstacle: ${ctx.weatherLabel}`;
+  document.getElementById("sb-question").textContent = ctx.question;
+  document.getElementById("sb-hint").textContent = ctx.hint;
+  document.getElementById("sb-answer").value = "";
+  document.getElementById("sb-output-panel").classList.add("hidden");
+  document.getElementById("sunbeam-modal").classList.remove("hidden");
+}
+document.getElementById("open-sunbeam-top-btn").addEventListener("click", openSunbeamStudio);
+document.getElementById("open-sunbeam-tree-btn").addEventListener("click", openSunbeamStudio);
+document.getElementById("close-sunbeam-btn").addEventListener("click", () => {
+  document.getElementById("sunbeam-modal").classList.add("hidden");
 });
-
+document.getElementById("sb-synthesize-btn").addEventListener("click", () => {
+  const answer = document.getElementById("sb-answer").value.trim();
+  if (!answer) return showToast("Type your honest situation first.");
+  lastSunbeamOutput = synthesizeSunbeamAction(userData, answer);
+  document.getElementById("sb-detected-signal").textContent = lastSunbeamOutput.signal;
+  document.getElementById("sb-diagnosis").textContent = lastSunbeamOutput.diagnosis;
+  document.getElementById("sb-today-step").textContent = lastSunbeamOutput.todayStep;
+  document.getElementById("sb-seed-test").textContent = lastSunbeamOutput.seedTest;
+  document.getElementById("sb-stone").textContent = lastSunbeamOutput.stone;
+  document.getElementById("sb-output-panel").classList.remove("hidden");
+});
+document.getElementById("sb-apply-btn").addEventListener("click", async () => {
+  if (!lastSunbeamOutput) return;
+  const newExp = {
+    id: "exp_" + Date.now(),
+    hypothesis: lastSunbeamOutput.seedTest,
+    deadline: todayStr(3),
+    status: "running",
+    lesson: ""
+  };
+  const newStone = {
+    id: "ms_" + Date.now(),
+    title: lastSunbeamOutput.stone,
+    dueDate: todayStr(7),
+    done: false
+  };
+  await safeAction(async () => {
+    await updateDoc(doc(db, "users", currentUser.uid), {
+      todayMove: { text: lastSunbeamOutput.todayStep, completedToday: false, updatedDate: todayStr(0) },
+      experiments: [newExp, ...(userData.experiments || [])],
+      milestones: [newStone, ...(userData.milestones || [])]
+    });
+    document.getElementById("sunbeam-modal").classList.add("hidden");
+    showToast("Tailored next step and assumption test applied!");
+  }, "Could not apply Sunbeam output");
+});
+// HIT AN OBSTACLE MODAL
+function openRockModal(autoPanel = null) {
+  document.querySelectorAll(".rock-panel").forEach((p) => p.classList.add("hidden"));
+  if (autoPanel) {
+    const map = {
+      fear: "rock-fear-panel",
+      phototropism: "rock-phototropism-panel",
+      test: "rock-test-panel",
+      shade: "rock-shade-panel"
+    };
+    if (map[autoPanel]) document.getElementById(map[autoPanel]).classList.remove("hidden");
+  }
+  document.getElementById("rock-modal").classList.remove("hidden");
+}
+document.getElementById("hit-rock-btn").addEventListener("click", () => openRockModal());
+document.getElementById("open-rock-sidebar-btn").addEventListener("click", () => openRockModal());
+document.getElementById("open-test-modal-btn").addEventListener("click", () => openRockModal("test"));
+document.getElementById("close-rock-btn").addEventListener("click", () => {
+  document.getElementById("rock-modal").classList.add("hidden");
+});
+document.querySelectorAll(".rock-pick").forEach((btn) => {
+  btn.addEventListener("click", () => openRockModal(btn.dataset.rock));
+});
+// Fear saved as PLANNED (Trunk only grows when user marks "I Actually Faced This ✓")
+document.getElementById("save-fearbreak-btn").addEventListener("click", async () => {
+  const protocol = document.getElementById("fb-protocol").value;
+  const fear = document.getElementById("fb-fear").value.trim();
+  const worstCase = document.getElementById("fb-worst").value.trim();
+  const microStep = document.getElementById("fb-micro").value.trim();
+  if (!fear || !microStep) return showToast("Name what you're avoiding and your 5-min step.");
+  const updatedFears = [
+    { id: "fb_" + Date.now(), protocol, fear, worstCase, microStep, status: "planned", createdAt: todayStr(0) },
+    ...(userData.fearsConquered || [])
+  ];
+  await safeAction(async () => {
+    await updateDoc(doc(db, "users", currentUser.uid), {
+      fearsConquered: updatedFears,
+      todayMove: { text: microStep, completedToday: false, updatedDate: todayStr(0) }
+    });
+    document.getElementById("fb-fear").value = "";
+    document.getElementById("fb-worst").value = "";
+    document.getElementById("fb-micro").value = "";
+    document.getElementById("rock-modal").classList.add("hidden");
+    showToast("5-min step set for Today! Mark it faced in My Tree once done.");
+  }, "Could not save fear reset");
+});
+document.getElementById("run-stresstest-btn").addEventListener("click", async () => {
+  const inputs = {
+    capital: document.getElementById("st-capital").value,
+    hours: document.getElementById("st-hours").value,
+    stage: document.getElementById("st-stage").value,
+    fear: document.getElementById("st-fear").value
+  };
+  const reading = runGroundCheck(userData, inputs);
+  await safeAction(() => updateDoc(doc(db, "users", currentUser.uid), {
+    weather: { capital: inputs.capital, hours: inputs.hours, stage: inputs.stage },
+    stressTest: reading
+  }), "Could not save diagnosis");
+  const out = document.getElementById("st-results");
+  out.innerHTML = `
+    <span class="pill pill-moss" style="margin-bottom:8px;">${esc(reading.posture)}</span>
+    <strong style="display:block; color:var(--text); margin-bottom:4px;">Likely Bottleneck: ${esc(reading.holdingBack)}</strong>
+    <p class="small muted" style="margin-bottom:10px;">${esc(reading.truth)}</p>
+    ${reading.steps.map((s, i) => `<div class="soft-row small"><span><strong>${i + 1}.</strong> ${esc(s)}</span></div>`).join("")}
+    <button id="apply-ground-step1" class="btn btn-moss btn-sm" type="button">Set Step 1 as
+Today's Focus</button>
+  `;
+  document.getElementById("apply-ground-step1")?.addEventListener("click", async () => {
+    await safeAction(() => updateDoc(doc(db, "users", currentUser.uid), {
+      todayMove: { text: reading.steps[0], completedToday: false, updatedDate: todayStr(0) }
+    }), "Could not update step");
+    document.getElementById("rock-modal").classList.add("hidden");
+    showToast("Step 1 is now your Today's Focus.");
+  });
+});
+document.getElementById("add-exp-btn").addEventListener("click", async () => {
+  const hypothesis = document.getElementById("exp-hyp").value.trim();
+  const deadline = document.getElementById("exp-deadline").value || todayStr(3);
+  if (!hypothesis) return showToast("Describe the assumption you're testing.");
+  const updated = [
+    { id: "exp_" + Date.now(), hypothesis, deadline, status: "running", lesson: "" },
+    ...(userData.experiments || [])
+  ];
+  await safeAction(async () => {
+    await updateDoc(doc(db, "users", currentUser.uid), { experiments: updated });
+    document.getElementById("exp-hyp").value = "";
+    document.getElementById("rock-modal").classList.add("hidden");
+    switchView("tree");
+    showToast("Test started! Record what happens to grow a leaf.");
+  }, "Could not save test");
+});
+document.getElementById("send-sos-btn").addEventListener("click", async () => {
+  const text = document.getElementById("sos-room-text").value.trim();
+  if (!text) return showToast("Describe your obstacle in 1 sentence.");
+  await safeAction(async () => {
+    await addDoc(collection(db, "rooms", "unstuck-sos", "messages"), {
+      uid: currentUser.uid,
+      authorName: userData.displayName || "Builder",
+      authorVision: shortVision(userData.visionTitle, 28),
+      authorStreak: userData.streak || 0,
+      type: "sos",
+      text: `BLOCKED: ${text}`,
+      createdAt: serverTimestamp()
+    });
+    document.getElementById("sos-room-text").value = "";
+    document.getElementById("rock-modal").classList.add("hidden");
+    switchView("forest");
+    openForestTab("circles");
+    activeRoom = "unstuck-sos";
+    renderRoomTabs();
+    subscribeToRoom(activeRoom);
+    showToast("Shared with #in-the-shade.");
+  }, "Could not send message");
+});
+document.getElementById("jump-mycelium-btn").addEventListener("click", () => {
+  document.getElementById("rock-modal").classList.add("hidden");
+  switchView("forest");
+  openForestTab("mycelium");
+});
+// MILESTONES (REAL DUE DATES)
+const openStonesModal = () => {
+  if (!document.getElementById("ms-due-date").value) {
+    document.getElementById("ms-due-date").value = todayStr(7);
+  }
+  document.getElementById("stones-modal").classList.remove("hidden");
+};
+document.getElementById("manage-stones-btn").addEventListener("click", openStonesModal);
+document.getElementById("open-stones-tree-btn").addEventListener("click", openStonesModal);
+document.getElementById("close-stones-btn").addEventListener("click", () => {
+  document.getElementById("stones-modal").classList.add("hidden");
+});
+document.getElementById("add-milestone-btn").addEventListener("click", async () => {
+  const title = document.getElementById("ms-title").value.trim();
+  const dueDate = document.getElementById("ms-due-date").value || todayStr(7);
+  if (!title) return showToast("Enter a concrete milestone.");
+  const list = [...(userData.milestones || []), { id: "ms_" + Date.now(), title, dueDate, done: false }];
+  await safeAction(() => updateDoc(doc(db, "users", currentUser.uid), { milestones: list }), "Could not add milestone");
+  document.getElementById("ms-title").value = "";
+});
+function renderMilestones() {
+  const list = userData?.milestones || [];
+  const done = list.filter((m) => m.done).length;
+  const pct = list.length ? Math.round((done / list.length) * 100) : 0;
+  document.getElementById("ms-percent").textContent = `${pct}%`;
+  document.getElementById("ms-progress-fill").style.width = `${pct}%`;
+  const el = document.getElementById("milestones-list");
+  if (!list.length) {
+    el.textContent = "No milestones yet.";
+    return;
+  }
+  el.innerHTML = list
+    .map((m) => {
+      const due = formatDueDateLabel(m.dueDate, m.targetDays);
+      const isOverdue = !m.done && due.startsWith("Overdue");
+      return `
+        <div class="soft-row">
+          <div>
+            <span class="pill ${isOverdue ? "pill-clay" : ""}">${esc(due)}</span>
+            <div style="margin-top:5px; text-decoration:${m.done ? "line-through" : "none"}; color:${m.done ? "var(--muted)" : "var(--text)"};">${esc(m.title)}</div>
+          </div>
+          <div style="display:flex; gap:6px;">
+            <button class="btn btn-moss btn-sm ms-toggle" data-id="${m.id}" type="button">${m.done ? "Undo" : "Done"}</button>
+            <button class="btn btn-clay btn-sm ms-del" data-id="${m.id}" type="button">×</button>
+          </div>
+        </div>
+      `;
+    })
+    .join("");
+  el.querySelectorAll(".ms-toggle").forEach((b) =>
+    b.addEventListener("click", async () => {
+      const updated = list.map((m) => (m.id === b.dataset.id ? { ...m, done: !m.done } : m));
+      await safeAction(() => updateDoc(doc(db, "users", currentUser.uid), { milestones: updated }), "Update failed");
+    })
+  );
+  el.querySelectorAll(".ms-del").forEach((b) =>
+    b.addEventListener("click", async () => {
+      const updated = list.filter((m) => m.id !== b.dataset.id);
+      await safeAction(() => updateDoc(doc(db, "users", currentUser.uid), { milestones: updated }), "Delete failed");
+    })
+  );
+}
+// EDIT GOAL MODAL
+document.getElementById("edit-vision-btn").addEventListener("click", () => {
+  document.getElementById("v-title").value = userData?.visionTitle || "";
+  document.getElementById("v-why").value = userData?.visionWhy || "";
+  document.getElementById("v-barrier").value = userData?.primaryBarrier || "clarity";
+  document.getElementById("vision-modal").classList.remove("hidden");
+});
+document.getElementById("close-vision-modal").addEventListener("click", () => {
+  document.getElementById("vision-modal").classList.add("hidden");
+});
+document.getElementById("vision-form").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const updates = {
+    visionTitle: document.getElementById("v-title").value.trim(),
+    visionWhy: document.getElementById("v-why").value.trim(),
+    primaryBarrier: document.getElementById("v-barrier").value
+  };
+  await safeAction(async () => {
+    await updateDoc(doc(db, "users", currentUser.uid), updates);
+    await syncBuilderVisibility({ ...userData, ...updates });
+    document.getElementById("vision-modal").classList.add("hidden");
+    showToast("Goal updated.");
+  }, "Could not update goal");
+});
+// THE FOREST: OPT-IN PRIVACY + 3-TYPE MYCELIUM + CIRCLES
+function openForestTab(tab) {
+  const isMyc = tab === "mycelium";
+  document.getElementById("forest-mycelium").classList.toggle("hidden", !isMyc);
+  document.getElementById("forest-circles").classList.toggle("hidden", isMyc);
+  document.getElementById("forest-tab-mycelium").classList.toggle("active", isMyc);
+  document.getElementById("forest-tab-circles").classList.toggle("active", !isMyc);
+  if (!isMyc) subscribeToRoom(activeRoom);
+}
+document.getElementById("forest-tab-mycelium").addEventListener("click", () => openForestTab("mycelium"));
+document.getElementById("forest-tab-circles").addEventListener("click", () => openForestTab("circles"));
+document.getElementById("save-swap-profile-btn").addEventListener("click", async () => {
+  const publicProfile = document.getElementById("forest-public-toggle").checked;
+  const skillsOffer = document.getElementById("profile-offer").value.trim();
+  const skillsNeed = document.getElementById("profile-need").value.trim();
+  await safeAction(async () => {
+    await updateDoc(doc(db, "users", currentUser.uid), { publicProfile, skillsOffer, skillsNeed });
+    await syncBuilderVisibility({ ...userData, publicProfile, skillsOffer, skillsNeed });
+    await loadBuildersDirectory();
+    showToast(publicProfile ? "Forest visibility & skills updated!" : "Directory visibility turned off & removed.");
+  }, "Could not save Forest settings");
+});
+async function loadBuildersDirectory() {
+  const snap = await safeAction(() => getDocs(query(collection(db, "builders"), limit(150))), "Could not load directory");
+  if (!snap) return;
+  cachedBuilders = [];
+  snap.forEach((d) => cachedBuilders.push(d.data()));
+  renderMyceliumMatches();
+  renderBuildersList(cachedBuilders);
+}
+function renderMatchCard(item, pillClass) {
+  const b = item.builder;
+  return `
+    <div class="soft-row" style="flex-direction:column; gap:6px;">
+      <div style="display:flex; justify-content:space-between; width:100%; align-items:center;
+gap:6px; flex-wrap:wrap;">
+        <strong>${esc(b.displayName)}</strong>
+        <span class="pill ${pillClass}">${esc(item.reason)}</span>
+      </div>
+      <div class="small muted">${esc(shortVision(b.visionTitle, 60))}</div>
+      <button class="btn btn-glass btn-sm ping-match-btn" data-name="${esc(b.displayName)}"
+type="button">Connect in #strength-swap →</button>
+    </div>
+  `;
+}
+function bindMatchConnectButtons() {
+  document.querySelectorAll(".ping-match-btn").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      openForestTab("circles");
+      activeRoom = "skill-swap";
+      renderRoomTabs();
+      subscribeToRoom("skill-swap");
+      const input = document.getElementById("chat-input");
+      input.value = `@${btn.dataset.name} `;
+      input.focus();
+    });
+  });
+}
+function renderMyceliumMatches() {
+  const { skills, experience, support } = computeMyceliumMatches(userData, cachedBuilders, currentUser.uid);
+  document.getElementById("mycelium-skills").innerHTML = skills.length
+    ? skills.map((m) => renderMatchCard(m, "pill-moss")).join("")
+    : "No exact skill overlap found yet. List specific skills you need above.";
+  document.getElementById("mycelium-experience").innerHTML = experience.length
+    ? experience.map((m) => renderMatchCard(m, "pill-sky")).join("")
+    : "No builders ahead on your exact obstacle yet.";
+  document.getElementById("mycelium-support").innerHTML = support.length
+    ? support.map((m) => renderMatchCard(m, "pill-sun")).join("")
+    : "As opted-in builders join, support peers will appear here.";
+  bindMatchConnectButtons();
+}
+function renderBuildersList(list) {
+  const grid = document.getElementById("builders-grid");
+  if (!list.length) {
+    grid.innerHTML = `<div class="soft-row small muted">No opted-in builders match that search yet.</div>`;
+    return;
+  }
+  grid.innerHTML = list
+    .sort((a, b) => (b.totalProofs || 0) - (a.totalProofs || 0))
+    .map(
+      (b) => `
+      <div class="soft-row" style="flex-direction:column; gap:6px;">
+        <div style="display:flex; justify-content:space-between; width:100%; align-items:center;">
+          <strong>${esc(b.displayName || "Builder")}</strong>
+          <span class="pill pill-moss">${Number(b.totalProofs || 0)} actions • ${Number(b.streak ||0)}d</span>
+        </div>
+        <div style="font-weight:600;">${esc(shortVision(b.visionTitle || "Building", 70))}</div>
+        <div class="small muted">Obstacle: ${esc(BARRIER_LABELS[b.primaryBarrier] || "—")}</
+div>
+        ${b.skillsOffer ? `<div class="small"><span class="pill pill-sky">Offers</span> ${esc(b.skillsOffer)}</div>` : ""}
+        ${b.skillsNeed ? `<div class="small"><span class="pill pill-sun">Needs</span> ${esc(b.skillsNeed)}</div>` : ""}
+      </div>
+    `
+    )
+    .join("");
+}
+document.getElementById("network-search").addEventListener("input", (e) => {
+  const q = e.target.value.trim().toLowerCase();
+  const filtered = cachedBuilders.filter((b) =>
+    `${b.displayName} ${b.visionTitle} ${b.skillsOffer} ${b.skillsNeed} ${BARRIER_LABELS[b.primaryBarrier] || ""}`
+      .toLowerCase()
+      .includes(q)
+  );
+  renderBuildersList(filtered);
+});
+// LIVE CIRCLES CHAT (FIXED LATEST-80 DESCENDING QUERY + MUTE/REPORT)
+function renderRoomTabs() {
+  const el = document.getElementById("chat-rooms-list");
+  el.innerHTML = FOREST_CIRCLES.map(
+    (r) => `
+    <button class="room-btn ${r.id === activeRoom ? "active" : ""}" data-room="${r.id}"
+type="button">
+      <strong>${esc(r.name)}</strong>
+      <div class="small muted" style="font-size:0.74rem;">${esc(r.desc)}</div>
+    </button>
+  `
+  ).join("");
+  el.querySelectorAll(".room-btn").forEach((btn) =>
+    btn.addEventListener("click", () => {
+      activeRoom = btn.dataset.room;
+      renderRoomTabs();
+      subscribeToRoom(activeRoom);
+    })
+  );
+}
+function subscribeToRoom(roomId) {
+  if (unsubChat) unsubChat();
+  const meta = FOREST_CIRCLES.find((r) => r.id === roomId) || FOREST_CIRCLES[0];
+  document.getElementById("active-room-title").textContent = meta.name;
+  document.getElementById("active-room-desc").textContent = meta.desc;
+  // Query LATEST 80 messages descending, then reverse chronologically
+  const q = query(collection(db, "rooms", roomId, "messages"), orderBy("createdAt", "desc"), limit(80));
+  unsubChat = onSnapshot(q, (snap) => {
+    const box = document.getElementById("chat-messages");
+    const mutedSet = new Set(userData?.mutedUids || []);
+    const docsNewestLast = snap.docs.slice().reverse().filter((d) => !mutedSet.has(d.data().uid));
+    if (!docsNewestLast.length) {
+      box.innerHTML = `<div class="small muted">Quiet inside ${esc(meta.name)} right now. Start the conversation!</div>`;
+      return;
+    }
+    const founder = isFounderUser(currentUser);
+    box.innerHTML = docsNewestLast
+      .map((d) => {
+        const m = d.data();
+        const mine = m.uid === currentUser.uid;
+        const typeClass = m.type === "proof" ? "proof-msg" : m.type === "sos" ? "sos-msg" : "";
+        return `
+          <div class="msg ${mine ? "mine" : ""} ${typeClass}">
+            <div class="msg-meta">
+              <strong>${esc(m.authorName || "Builder")}</strong>
+              <span class="pill chat-vision-pill" title="${esc(m.authorVision || "")}">${esc(shortVision(m.authorVision, 28))}</span>
+              <span class="muted">${Number(m.authorStreak || 0)}d</span>
+              ${(mine || founder) ? `<button class="btn btn-clay btn-sm msg-del" data-id="${d.id}" type="button" style="padding:2px 8px; font-size:0.7rem;">Del</button>` : ""}
+              ${!mine ? `<button class="link-btn msg-mute" data-uid="${esc(m.uid)}" type="button" style="font-size:0.7rem; color:var(--muted);">Hide</button>` : ""}
+              ${!mine ? `<button class="link-btn msg-report" data-id="${d.id}" data-text="${esc(shortVision(m.text, 120))}" type="button" style="font-size:0.7rem; color:var(--clay);">Report</button>` : ""}
+            </div>
+            <div class="small">${esc(m.text)}</div>
+          </div>
+        `;
+      })
+      .join("");
+    box.querySelectorAll(".msg-del").forEach((btn) =>
+      btn.addEventListener("click", () => safeAction(() => deleteDoc(doc(db, "rooms", roomId, "messages", btn.dataset.id)), "Delete failed"))
+    );
+    box.querySelectorAll(".msg-mute").forEach((btn) =>
+      btn.addEventListener("click", async () => {
+        const uidToMute = btn.dataset.uid;
+        const nextMuted = Array.from(new Set([...(userData?.mutedUids || []), uidToMute]));
+        await safeAction(() => updateDoc(doc(db, "users", currentUser.uid), { mutedUids: nextMuted }), "Could not hide user");
+        showToast("User hidden from your chat view.");
+      })
+    );
+    box.querySelectorAll(".msg-report").forEach((btn) =>
+      btn.addEventListener("click", async () => {
+        await safeAction(async () => {
+          await addDoc(collection(db, "reports"), {
+            reporterUid: currentUser.uid,
+            roomId,
+            messageId: btn.dataset.id,
+            messagePreview: btn.dataset.text,
+            reason: "Flagged by community member",
+            createdAt: serverTimestamp()
+          });
+          showToast("Message reported to Founder for review.");
+        }, "Could not submit report");
+      })
+    );
+    box.scrollTop = box.scrollHeight;
+  });
+}
+document.getElementById("chat-form").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const input = document.getElementById("chat-input");
+  const text = input.value.trim();
+  if (!text) return;
+  input.value = "";
+  await safeAction(async () => {
+    await addDoc(collection(db, "rooms", activeRoom, "messages"), {
+      uid: currentUser.uid,
+      authorName: userData?.displayName || "Builder",
+      authorVision: shortVision(userData?.visionTitle || "Goal", 28),
+      authorStreak: userData?.streak || 0,
+      type: "chat",
+      text,
+      createdAt: serverTimestamp()
+    });
+  }, "Failed to send message");
+});
 // LIVE SYSTEM CONFIG (FOUNDER PUSHES)
 function renderLiveConfig() {
   const ann = liveConfig?.announcement;
@@ -784,18 +1211,17 @@ function renderLiveConfig() {
   } else {
     banner.classList.add("hidden");
   }
-
   const protos = liveConfig?.founderProtocols || [];
-  const protEl = document.getElementById("live-protocols-list");
+  const protEl = document.getElementById("live-wisdom-list");
   if (!protos.length) {
-    protEl.textContent = "No custom protocols pushed yet—check back soon!";
+    protEl.textContent = "Timely guidance from Tavirah appears here automatically.";
   } else {
     protEl.innerHTML = [...protos]
       .reverse()
       .map(
         (p) => `
-        <div class="item-row" style="flex-direction:column;">
-          <span class="badge badge-accent">LIVE PROTOCOL</span>
+        <div class="soft-row" style="flex-direction:column;">
+          <span class="pill pill-sun">LIVING WISDOM</span>
           <strong style="margin-top:6px;">${esc(p.title)}</strong>
           <p class="small muted" style="white-space:pre-line; margin-top:4px;">${esc(p.steps)}</p>
         </div>
@@ -804,214 +1230,41 @@ function renderLiveConfig() {
       .join("");
   }
 }
-
 document.getElementById("dismiss-ann-btn").addEventListener("click", () => {
   document.getElementById("live-announcement").classList.add("hidden");
 });
-
-// BUILDER NETWORK DIRECTORY
-async function loadBuildersDirectory() {
-  const snap = await getDocs(query(collection(db, "builders"), limit(80)));
-  cachedBuilders = [];
-  snap.forEach((d) => cachedBuilders.push(d.data()));
-  renderBuildersList(cachedBuilders);
-}
-
-function renderBuildersList(list) {
-  const grid = document.getElementById("builders-grid");
-  if (!list.length) {
-    grid.innerHTML = `<div class="card small muted">No builders match that search yet.</div>`;
-    return;
-  }
-  grid.innerHTML = list
-    .sort((a, b) => (b.totalProofs || 0) - (a.totalProofs || 0))
-    .map(
-      (b) => `
-      <div class="card">
-        <div style="display:flex; justify-content:space-between; align-items:center; gap:8px;">
-          <strong>${esc(b.displayName || "Builder")}</strong>
-          <span class="badge badge-green">${Number(b.totalProofs || 0)} proofs • ${Number(b.streak || 0)}d</span>
-        </div>
-        <div style="margin-top:8px; font-weight:600;">${esc(shortVision(b.visionTitle || "Defining vision...", 70))}</div>
-        <div class="small muted" style="margin-top:4px;">Facing: ${esc(BARRIER_LABELS[b.primaryBarrier] || "—")}</div>
-        ${b.skillsOffer ? `<div class="small" style="margin-top:8px;"><span class="badge badge-blue">Can Offer</span> ${esc(b.skillsOffer)}</div>` : ""}
-        ${b.skillsNeed ? `<div class="small" style="margin-top:6px;"><span class="badge badge-accent">Looking For</span> ${esc(b.skillsNeed)}</div>` : ""}
-      </div>
-    `
-    )
-    .join("");
-}
-
-document.getElementById("network-search").addEventListener("input", (e) => {
-  const q = e.target.value.trim().toLowerCase();
-  const filtered = cachedBuilders.filter((b) =>
-    `${b.displayName} ${b.visionTitle} ${b.skillsOffer} ${b.skillsNeed} ${BARRIER_LABELS[b.primaryBarrier] || ""}`
-      .toLowerCase()
-      .includes(q)
-  );
-  renderBuildersList(filtered);
-});
-
-// REAL-TIME MULTI-ROOM CHAT
-function renderRoomTabs() {
-  const el = document.getElementById("chat-rooms-list");
-  el.innerHTML = DEFAULT_ROOMS.map(
-    (r) => `
-    <button class="room-btn ${r.id === activeRoom ? "active" : ""}" data-room="${r.id}">
-      <strong>${esc(r.name)}</strong>
-      <div class="small muted" style="font-size:0.74rem;">${esc(r.desc)}</div>
-    </button>
-  `
-  ).join("");
-
-  el.querySelectorAll(".room-btn").forEach((btn) =>
-    btn.addEventListener("click", () => {
-      activeRoom = btn.dataset.room;
-      renderRoomTabs();
-      subscribeToRoom(activeRoom);
-    })
-  );
-}
-
-function subscribeToRoom(roomId) {
-  if (unsubChat) unsubChat();
-  const meta = DEFAULT_ROOMS.find((r) => r.id === roomId) || DEFAULT_ROOMS[0];
-  document.getElementById("active-room-title").textContent = meta.name;
-  document.getElementById("active-room-desc").textContent = meta.desc;
-
-  const q = query(collection(db, "rooms", roomId, "messages"), orderBy("createdAt", "asc"), limit(80));
-  unsubChat = onSnapshot(q, (snap) => {
-    const box = document.getElementById("chat-messages");
-    if (snap.empty) {
-      box.innerHTML = `<div class="small muted">No messages in ${esc(meta.name)} yet. Start the momentum!</div>`;
-      return;
-    }
-
-    const founder = isFounderUser(currentUser);
-    box.innerHTML = snap.docs
-      .map((d) => {
-        const m = d.data();
-        const mine = m.uid === currentUser.uid;
-        const typeClass = m.type === "proof" ? "proof-msg" : m.type === "sos" ? "sos-msg" : "";
-        return `
-          <div class="msg ${mine ? "mine" : ""} ${typeClass}">
-            <div class="msg-meta">
-              <strong>${esc(m.authorName || "Builder")}</strong>
-              <span class="badge chat-vision-pill" title="${esc(m.authorVision || "")}">${esc(shortVision(m.authorVision || "Building", 28))}</span>
-              <span class="mono muted">${Number(m.authorStreak || 0)}d</span>
-              ${(mine || founder) ? `<button class="btn btn-danger btn-sm msg-del" data-id="${d.id}" style="padding:2px 7px; font-size:0.7rem;">Del</button>` : ""}
-            </div>
-            <div class="small">${esc(m.text)}</div>
-          </div>
-        `;
-      })
-      .join("");
-
-    box.querySelectorAll(".msg-del").forEach((btn) =>
-      btn.addEventListener("click", async () => {
-        await deleteDoc(doc(db, "rooms", roomId, "messages", btn.dataset.id));
-      })
-    );
-
-    box.scrollTop = box.scrollHeight;
-  });
-}
-
-document.getElementById("chat-form").addEventListener("submit", async (e) => {
-  e.preventDefault();
-  const input = document.getElementById("chat-input");
-  const text = input.value.trim();
-  if (!text) return;
-  input.value = "";
-
-  await addDoc(collection(db, "rooms", activeRoom, "messages"), {
-    uid: currentUser.uid,
-    authorName: userData?.displayName || "Builder",
-    authorVision: shortVision(userData?.visionTitle || "Building", 30),
-    authorStreak: userData?.streak || 0,
-    type: "chat",
-    text,
-    createdAt: serverTimestamp()
-  });
-});
-
-// TACTICAL UNBLOCK SOS MODAL
-const openUnblock = () => document.getElementById("unblock-modal").classList.remove("hidden");
-document.getElementById("open-unblock-btn").addEventListener("click", openUnblock);
-document.getElementById("mobile-unblock-btn").addEventListener("click", openUnblock);
-document.getElementById("close-unblock-btn").addEventListener("click", () => {
-  document.getElementById("unblock-modal").classList.add("hidden");
-});
-
-document.querySelectorAll(".unblock-choice").forEach((btn) => {
-  btn.addEventListener("click", () => {
-    const advice = UNBLOCK_ADVICE[btn.dataset.block] || "";
-    document.getElementById("unblock-advice-text").textContent = advice;
-    document.getElementById("unblock-advice-box").classList.remove("hidden");
-  });
-});
-
-document.getElementById("send-sos-btn").addEventListener("click", async () => {
-  const input = document.getElementById("sos-room-text");
-  const text = input.value.trim();
-  if (!text) return showToast("Describe your blocker in 1 sentence first.");
-
-  await addDoc(collection(db, "rooms", "unstuck-sos", "messages"), {
-    uid: currentUser.uid,
-    authorName: userData?.displayName || "Builder",
-    authorVision: shortVision(userData?.visionTitle || "Building", 30),
-    authorStreak: userData?.streak || 0,
-    type: "sos",
-    text: `SOS BLOCKER: ${text}`,
-    createdAt: serverTimestamp()
-  });
-
-  input.value = "";
-  document.getElementById("unblock-modal").classList.add("hidden");
-  activeRoom = "unstuck-sos";
-  renderRoomTabs();
-  switchView("chat");
-  showToast("Ping sent to #unstuck-sos!");
-});
-
 // FOUNDER COCKPIT EVENTS
-document.getElementById("refresh-founder-btn").addEventListener("click", () => loadFounderTelemetry(liveConfig));
-
+document.getElementById("refresh-founder-btn").addEventListener("click", () => {
+  if (!isFounderUser(currentUser)) return;
+  safeAction(() => loadFounderTelemetry(liveConfig), "Telemetry failed");
+});
 document.getElementById("f-push-ann-btn").addEventListener("click", async () => {
+  if (!isFounderUser(currentUser)) return;
   const title = document.getElementById("f-ann-title").value.trim();
   const body = document.getElementById("f-ann-body").value.trim();
   if (!title) return showToast("Enter an announcement title.");
-  await pushFounderAnnouncement(title, body);
-  showToast("Announcement pushed LIVE to all Tavirah builders!");
+  await safeAction(async () => {
+    await pushFounderAnnouncement(title, body);
+    showToast("Announcement pushed LIVE!");
+  }, "Push failed");
 });
-
 document.getElementById("f-push-proto-btn").addEventListener("click", async () => {
+  if (!isFounderUser(currentUser)) return;
   const title = document.getElementById("f-proto-title").value.trim();
   const steps = document.getElementById("f-proto-steps").value.trim();
-  if (!title || !steps) return showToast("Enter both protocol title and steps.");
-  await pushFounderProtocol(title, steps);
-  document.getElementById("f-proto-title").value = "";
-  document.getElementById("f-proto-steps").value = "";
-  showToast("New Protocol pushed LIVE to Engine #6!");
+  if (!title || !steps) return showToast("Enter both title and steps.");
+  await safeAction(async () => {
+    await pushFounderProtocol(title, steps);
+    document.getElementById("f-proto-title").value = "";
+    document.getElementById("f-proto-steps").value = "";
+    showToast("Living Wisdom pushed LIVE!");
+  }, "Push failed");
 });
-
 document.getElementById("f-copy-brief-btn").addEventListener("click", async () => {
-  await navigator.clipboard.writeText(document.getElementById("f-ai-brief").value);
-  showToast("Live Founder Brief copied—paste it to your AI partner!");
+  await safeAction(() => navigator.clipboard.writeText(document.getElementById("f-ai-brief").value), "Copy failed");
+  showToast("Live Founder Brief copied!");
 });
-
-// NAVIGATION & SUBTAB DELEGATION
+// NAVIGATION BINDING
 document.querySelectorAll(".nav-btn[data-view]").forEach((btn) => {
   btn.addEventListener("click", () => switchView(btn.dataset.view));
-});
-
-document.querySelectorAll(".subtab[data-engine]").forEach((btn) => {
-  btn.addEventListener("click", () => switchEngine(btn.dataset.engine));
-});
-
-document.querySelectorAll("[data-jump-engine]").forEach((btn) => {
-  btn.addEventListener("click", () => {
-    switchView("engines");
-    switchEngine(btn.dataset.jumpEngine);
-  });
 });

@@ -3,34 +3,42 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Tavirah OS — Vision to Reality</title>
-  <meta name="theme-color" content="#09090b" />
-  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 128 128'%3E%3Crect width='128' height='128' rx='28' fill='%2309090b'/%3E%3Cpath d='M30 34h68v14H71v48H57V48H30V34z' fill='%23f59e0b'/%3E%3Ccircle cx='94' cy='88' r='9' fill='%23ffffff'/%3E%3C/svg%3E" />
+  <title>Tavirah OS — Where Dreams Take Root</title>
+  <meta name="theme-color" content="#080d0b" />
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 128 128'%3E%3Crect width='128' height='128' rx='28' fill='%23080d0b'/%3E%3Cpath d='M30 34h68v14H71v48H57V48H30V34z' fill='%23fbbf24'/%3E%3Ccircle cx='94' cy='88' r='9' fill='%2334d399'/%3E%3C/svg%3E" />
   <link rel="manifest" href="./manifest.json" />
   <link rel="stylesheet" href="./styles.css" />
 </head>
 <body>
-
+  <div class="ambient-bg" aria-hidden="true">
+    <div class="orb orb-sun"></div>
+    <div class="orb orb-moss"></div>
+  </div>
   <!-- AUTHENTICATION SCREEN -->
-  <section id="auth-screen" class="auth-wrap">
-    <div class="card auth-box">
+  <section id="auth-screen" class="center-stage">
+    <div class="glass auth-card">
       <div class="brand-mark">
-        <span class="brand-dot"></span>
-        <span>TAVIRAH <span class="muted small mono">OS</span></span>
+        <span class="brand-seed"></span>
+        <span>Tavirah</span>
       </div>
       <p class="muted small" style="margin-top:8px;">
-        The daily operating system built to convert human vision into physical reality—regardless of circumstance, resources, or identity.
+        Turn what lives in your mind into physical reality—one clear decision and real-world step at a time.
       </p>
-
+      <div style="margin-top:18px;">
+        <button id="google-signin-btn" type="button" class="btn btn-google btn-full">
+          <svg width="18" height="18" viewBox="0 0 48 48" aria-hidden="true"><path fill="#FFC107" d="M43.6 20.1H42V20H24v8h11.3C33.6 32.7 29.2 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.2 8 3l5.7-5.7C34 6.1 29.3 4 24 4 13 4 4 13 4 24s9 20 20 20 20-9 20-20c0-1.3-.1-2.6-.4-3.9z"/><path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.7 15.1 19 12 24 12c3.1 0 5.8 1.2 8 3l5.7-5.7C34 6.1 29.3 4 24 4 16.3 4 9.7 8.3 6.3 14.7z"/><path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2C29.2 35.1 26.7 36 24 36c-5.2 0-9.6-3.3-11.3-7.9l-6.5 5C9.5 39.6 16.2 44 24 44z"/><path fill="#1976D2" d="M43.6 20.1H42V20H24v8h11.3c-.8 2.3-2.3 4.3-4.1 5.6l6.2 5.2C41 35.4 44 30.1 44 24c0-1.3-.1-2.6-.4-3.9z"/></svg>
+          Continue with Google
+        </button>
+      </div>
+      <div class="divider-line">or use email</div>
       <div class="auth-tabs">
         <button id="tab-signin" class="auth-tab active" type="button">Sign In</button>
-        <button id="tab-signup" class="auth-tab" type="button">Join Tavirah</button>
+        <button id="tab-signup" class="auth-tab" type="button">Create Account</button>
       </div>
-
       <form id="auth-form">
         <div id="signup-name-field" class="field hidden">
-          <label for="auth-name">Builder Name / Alias</label>
-          <input id="auth-name" type="text" maxlength="30" placeholder="e.g. Addi, Maya, Builder_01" />
+          <label for="auth-name">Your Name or Builder Alias</label>
+          <input id="auth-name" type="text" maxlength="30" placeholder="e.g. Addi, Maya" />
         </div>
         <div class="field">
           <label for="auth-email">Email</label>
@@ -40,540 +48,648 @@
           <label for="auth-password">Password (min 6 characters)</label>
           <input id="auth-password" type="password" required minlength="6" placeholder="••••••••" />
         </div>
-        <p id="auth-error" class="small hidden" style="color:#fca5a5; margin-bottom:12px;"></p>
-        <button id="auth-submit-btn" type="submit" class="btn btn-primary btn-full">Enter Tavirah OS</button>
+        <div style="display:flex; justify-content:flex-end; margin:-6px 0 12px;">
+          <button id="forgot-pw-btn" type="button" class="link-btn">Forgot password?</button>
+        </div>
+        <p id="auth-error" class="small hidden" style="color:#fecaca; margin-bottom:12px;"></p>
+        <button id="auth-submit-btn" type="submit" class="btn btn-sun btn-full">Enter Tavirah</button>
       </form>
+      <div id="reset-panel" class="hidden" style="margin-top:14px; padding-top:14px; border-top:1px solid var(--rim);">
+        <label for="reset-email">Send recovery link to your email:</label>
+        <div style="display:flex; gap:8px;">
+          <input id="reset-email" type="email" placeholder="you@example.com" />
+          <button id="send-reset-btn" type="button" class="btn btn-moss btn-sm">Send</button>
+          <button id="cancel-reset-btn" type="button" class="btn btn-glass btn-sm">Cancel</button>
+        </div>
+      </div>
     </div>
   </section>
-
+  <!-- 3-STEP CONVERSATIONAL ONBOARDING -->
+  <section id="onboarding-screen" class="center-stage hidden">
+    <div class="glass onb-card">
+      <div class="breath-dots">
+        <div class="breath-dot active" data-dot="1"></div>
+        <div class="breath-dot" data-dot="2"></div>
+        <div class="breath-dot" data-dot="3"></div>
+      </div>
+      <div id="onb-step-1">
+        <span class="pill pill-sun">Step 1 of 3 • Your Goal</span>
+        <h2 style="margin-top:12px; font-size:1.5rem;">What lives in your head that you want to exist in the real world?</h2>
+        <p class="muted small" style="margin:6px 0 18px;">Keep the title short; describe who it helps and why it matters below.</p>
+        <div class="field">
+          <label for="onb-title">Goal Headline (max 70 characters)</label>
+          <input id="onb-title" type="text" maxlength="70" placeholder="e.g., Clean Water Delivery App for My City" />
+        </div>
+        <div class="field">
+          <label for="onb-why">Why does this matter to you or others?</label>
+          <textarea id="onb-why" placeholder="Who does it help, and what changes when it exists?"></textarea>
+        </div>
+        <button id="onb-next-1" type="button" class="btn btn-sun btn-full">Continue →</button>
+      </div>
+      <div id="onb-step-2" class="hidden">
+        <span class="pill pill-moss">Step 2 of 3 • Your Situation</span>
+        <h2 style="margin-top:12px; font-size:1.5rem;">What is your real situation right now?</h2>
+        <p class="muted small" style="margin:6px 0 16px;">Be honest—Tavirah shapes your next decision around your real constraints.</p>
+        <label>Resources available right now</label>
+        <div class="choice-row">
+          <button type="button" class="pill-choice selected" data-group="capital" data-val="zero">Starting at $0</button>
+          <button type="button" class="pill-choice" data-group="capital" data-val="micro">A little to test</button>
+          <button type="button" class="pill-choice" data-group="capital" data-val="funded">Ready to invest</button>
+        </div>
+        <label>Focused time you can protect each week</label>
+        <div class="choice-row">
+          <button type="button" class="pill-choice selected" data-group="hours" data-val="low">Under 5 hrs/wk</button>
+          <button type="button" class="pill-choice" data-group="hours" data-val="med">5–15 hrs/wk</button>
+          <button type="button" class="pill-choice" data-group="hours" data-val="high">15+ hrs/wk</button>
+        </div>
+        <label>Where your project stands today</label>
+        <div class="choice-row">
+          <button type="button" class="pill-choice selected" data-group="stage" data-val="idea">Only in my mind</button>
+          <button type="button" class="pill-choice" data-group="stage" data-val="started">Started, then stalled</button>
+          <button type="button" class="pill-choice" data-group="stage" data-val="built">Built, waiting for users</button>
+        </div>
+        <div style="display:flex; gap:10px; margin-top:12px;">
+          <button id="onb-back-2" type="button" class="btn btn-glass">← Back</button>
+          <button id="onb-next-2" type="button" class="btn btn-sun" style="flex:1;">Continue →</button>
+        </div>
+      </div>
+      <div id="onb-step-3" class="hidden">
+        <span class="pill pill-sun">Step 3 of 3 • Main Obstacle</span>
+        <h2 style="margin-top:12px; font-size:1.5rem;">What feels heaviest when you sit down to work?</h2>
+        <p class="muted small" style="margin:6px 0 16px;">Pick your main obstacle today.</p>
+        <div class="barrier-grid">
+          <button type="button" class="barrier-card selected" data-barrier="clarity">🌫️ Too many thoughts—I don't know my exact next step</button>
+          <button type="button" class="barrier-card" data-barrier="fear">🌑 Fear, self-doubt, or waiting until it's "perfect"</button>
+          <button type="button" class="barrier-card" data-barrier="capital">🪨 Zero money, limited tools, or hard circumstances</button>
+          <button type="button" class="barrier-card" data-barrier="identity">🚪 Worrying about my background, status, or judgment</button>
+          <button type="button" class="barrier-card" data-barrier="isolation">🌱 Carrying this completely alone with no support</button>
+        </div>
+        <label class="optin-row" for="onb-public-optin">
+          <input id="onb-public-optin" type="checkbox" />
+          <span class="small">
+            <strong>Optional: Show my goal &amp; strengths in The Forest directory</strong>
+            <span class="muted" style="display:block; font-size:0.78rem;">Leave unchecked to stay completely private. You can turn this on or off anytime.</span>
+          </span>
+        </label>
+        <div style="display:flex; gap:10px;">
+          <button id="onb-back-3" type="button" class="btn btn-glass">← Back</button>
+          <button id="onb-finish-btn" type="button" class="btn btn-moss" style="flex:1;">Begin My Path →</button>
+        </div>
+      </div>
+    </div>
+  </section>
   <!-- MAIN APP SHELL -->
   <div id="app-shell" class="app-shell hidden">
     <aside class="sidebar">
       <div class="brand-mark">
-        <span class="brand-dot"></span>
-        <span>TAVIRAH <span class="muted small mono">OS</span></span>
+        <span class="brand-seed"></span>
+        <span>Tavirah</span>
       </div>
-      <p id="sidebar-user-tag" class="muted small mono" style="margin-top:6px;">Loading...</p>
-
-      <nav class="nav-list">
-        <button class="nav-btn active" data-view="command">⚡ Daily Command</button>
-        <button class="nav-btn" data-view="engines">🧠 Intelligence Suite</button>
-        <button class="nav-btn" data-view="timeline">🧱 Proof Timeline</button>
-        <button class="nav-btn" data-view="network">🌐 Builder Network</button>
-        <button class="nav-btn" data-view="chat">💬 Live Builder Rooms</button>
-        <button id="nav-founder-btn" class="nav-btn founder-nav hidden" data-view="founder">🛡️ Founder Cockpit</button>
+      <p id="sidebar-user-tag" class="muted small" style="margin-top:6px;">Growing...</p>
+      <nav class="nav-list" aria-label="Main Navigation">
+        <button class="nav-btn active" data-view="today">☀️ Today</button>
+        <button class="nav-btn" data-view="tree">🌳 My Tree</button>
+        <button class="nav-btn" data-view="forest">🌿 The Forest</button>
+        <button id="nav-founder-btn" class="nav-btn founder-nav hidden" data-view="founder">🛡️ Founder</button>
       </nav>
-
-      <div style="border-top:1px solid var(--border); padding-top:12px; display:flex; flex-direction:column; gap:8px;">
-        <button id="open-unblock-btn" class="btn btn-danger btn-sm btn-full">Stuck Right Now?</button>
-        <button id="logout-btn" class="btn btn-secondary btn-sm btn-full">Sign Out</button>
+      <div style="border-top:1px solid var(--rim); padding-top:14px; display:flex; flex-direction:column; gap:8px;">
+        <button id="open-rock-sidebar-btn" class="btn btn-clay btn-sm btn-full">Hit an obstacle?</button>
+        <button id="logout-btn" class="btn btn-glass btn-sm btn-full">Sign Out</button>
       </div>
     </aside>
-
-    <!-- MOBILE BOTTOM NAV -->
-    <nav class="mobile-nav">
-      <button class="nav-btn active" data-view="command">⚡<span>Daily</span></button>
-      <button class="nav-btn" data-view="engines">🧠<span>Engines</span></button>
-      <button class="nav-btn" data-view="timeline">🧱<span>Proof</span></button>
-      <button class="nav-btn" data-view="network">🌐<span>Builders</span></button>
-      <button class="nav-btn" data-view="chat">💬<span>Rooms</span></button>
-      <button id="mobile-founder-btn" class="nav-btn founder-nav hidden" data-view="founder">🛡️<span>Founder</span></button>
+    <!-- MOBILE BOTTOM DOCK -->
+    <nav class="mobile-nav" aria-label="Mobile Navigation">
+      <button class="nav-btn active" data-view="today">☀️<span>Today</span></button>
+      <button class="nav-btn" data-view="tree">🌳<span>My Tree</span></button>
+      <button class="nav-btn" data-view="forest">🌿<span>Forest</span></button>
+      <button id="mobile-founder-btn" class="nav-btn founder-nav hidden" data-view="founder">
+🛡️<span>Founder</span></button>
     </nav>
-
     <main class="main-content">
-      <!-- LIVE FOUNDER ANNOUNCEMENT BANNER -->
+      <!-- LIVE ANNOUNCEMENT FROM FOUNDER -->
       <div id="live-announcement" class="announcement-banner hidden">
         <div>
-          <span class="badge badge-blue" style="margin-bottom:4px;">LIVE FROM TAVIRAH</span>
+          <span class="pill pill-sky" style="margin-bottom:4px;">FROM TAVIRAH</span>
           <strong id="ann-title" style="display:block;"></strong>
           <span id="ann-body" class="small muted"></span>
         </div>
-        <button id="dismiss-ann-btn" class="btn btn-secondary btn-sm">Dismiss</button>
+        <button id="dismiss-ann-btn" class="btn btn-glass btn-sm">Dismiss</button>
       </div>
-
-      <!-- VIEW 1: DAILY COMMAND CENTER -->
-      <section id="view-command" class="view">
+      <!-- SPACE 1: TODAY -->
+      <section id="view-today" class="view">
         <div class="page-header">
           <div>
-            <h1>Daily Command Center</h1>
-            <p class="muted small">Follow the 3 daily steps below to convert your vision into physical proof.</p>
+            <span id="today-stage-pill" class="pill pill-moss">🌱 Seed Stage</span>
+            <h1 id="today-greeting" style="margin-top:8px;">Welcome back.</h1>
           </div>
           <div style="display:flex; gap:8px; flex-wrap:wrap;">
-            <button id="edit-vision-btn" class="btn btn-secondary btn-sm">Edit North Star</button>
-            <button id="mobile-unblock-btn" class="btn btn-danger btn-sm">Stuck Right Now?</button>
+            <button id="open-sunbeam-top-btn" class="btn btn-sun btn-sm">✨ Sunbeam Clarity</button>
+            <button id="edit-vision-btn" class="btn btn-glass btn-sm">Edit Goal</button>
           </div>
         </div>
-
-        <div class="guide-strip">
-          <button id="step-1-pill" class="guide-pill" type="button">1. Lock Vision</button>
-          <button id="step-2-pill" class="guide-pill" type="button" data-jump-engine="stresstest">2. Run Reality Stress-Test</button>
-          <button id="step-3-pill" class="guide-pill" type="button">3. Execute &amp; Log Today's Proof</button>
-        </div>
-
-        <div class="card card-highlight" style="margin-bottom:18px;">
-          <div style="display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap;">
-            <span class="badge badge-accent">MY NORTH STAR VISION</span>
-            <span id="cmd-barrier-badge" class="badge">Primary Block: —</span>
-          </div>
-          <h2 id="cmd-vision-title" style="margin-top:10px; font-size:1.35rem;">Define your vision...</h2>
-          <p id="cmd-vision-why" class="muted small" style="margin-top:4px;"></p>
-        </div>
-
-        <div class="grid-3" style="margin-bottom:18px;">
-          <div class="card">
-            <span class="muted small">Execution Streak</span>
-            <div class="stat-num" id="stat-streak">0 days</div>
-          </div>
-          <div class="card">
-            <span class="muted small">Total Bricks Laid (Proofs)</span>
-            <div class="stat-num" id="stat-proofs">0</div>
-          </div>
-          <div class="card">
-            <span class="muted small">Fears & Experiments</span>
-            <div class="stat-num" id="stat-mastery">0</div>
+        <!-- FOREST PULSE (CONTEXTUAL ADAPTIVE RADAR) -->
+        <div id="forest-pulse-card" class="glass glass-pulse hidden" style="margin-bottom:18px;">
+          <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:14px; flex-wrap:wrap;">
+            <div>
+              <span id="pulse-badge" class="pill pill-sun">NEXT INSIGHT</span>
+              <h3 id="pulse-title" style="margin-top:8px;"></h3>
+              <p id="pulse-message" class="small muted" style="margin-top:4px; max-width:600px;"></p>
+            </div>
+            <button id="pulse-action-btn" class="btn btn-sun btn-sm">Take Action</button>
           </div>
         </div>
-
+        <!-- HERO SANCTUARY CARD: REALITY RINGS + TODAY'S DECISION -->
+        <div class="glass glass-hero" style="margin-bottom:18px;">
+          <div class="today-hero-grid">
+            <div class="rings-wrap" aria-label="Daily progress rings">
+              <svg class="rings-svg" viewBox="0 0 180 180">
+                <circle class="ring-track" cx="90" cy="90" r="76" stroke-width="11"></circle>
+                <circle id="ring-roots-circle" class="ring-progress" cx="90" cy="90" r="76" stroke="var(--moss)" stroke-width="11" stroke-dasharray="477.5" stroke-dashoffset="477.5"></circle>
+                <circle class="ring-track" cx="90" cy="90" r="56" stroke-width="11"></circle>
+                <circle id="ring-today-circle" class="ring-progress" cx="90" cy="90" r="56" stroke="var(--sun)" stroke-width="11" stroke-dasharray="351.8" stroke-dashoffset="351.8"></circle>
+              </svg>
+              <div class="rings-center">
+                <div id="ring-stage-emoji" style="font-size:1.7rem;">🌱</div>
+                <div id="ring-roots-pct" class="small" style="font-weight:700;">0% Roots</div>
+                <div id="today-ring-label" class="muted" style="font-size:0.72rem;">Ring Open</div>
+              </div>
+            </div>
+            <div>
+              <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-bottom:8px;">
+                <span id="today-vision-label" class="pill pill-sun">My Goal</span>
+                <span id="today-archetype-pill" class="pill">General Project</span>
+              </div>
+              <p class="muted small">Your most useful next step today:</p>
+              <h2 id="today-step-display" style="margin:6px 0 14px; font-size:1.3rem; line-height:1.38;">Setting your next step...</h2>
+              <div id="today-step-edit-box" class="hidden" style="margin-bottom:14px;">
+                <label for="today-move-input">Edit today's step</label>
+                <div style="display:flex; gap:8px;">
+                  <input id="today-move-input" type="text" placeholder="What concrete step tests or advances your goal today?" />
+                  <button id="save-today-move-btn" class="btn btn-moss btn-sm">Save</button>
+                </div>
+              </div>
+              <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
+                <button id="enter-focus-btn" class="btn btn-sun">Enter Focus</button>
+                <button id="open-complete-btn" class="btn btn-moss">Record what happened ✓</button>
+                <button id="hit-rock-btn" class="btn btn-clay btn-sm">Hit an obstacle?</button>
+                <button id="edit-step-toggle" class="link-btn" style="margin-left:4px;">Edit step</button>
+              </div>
+            </div>
+          </div>
+        </div>
+        <!-- NEXT MILESTONE -->
+        <div class="glass" style="display:flex; justify-content:space-between; align-items:center; gap:14px; flex-wrap:wrap;">
+          <div>
+            <span class="muted small" style="display:block;">Next milestone ahead</span>
+            <strong id="next-stone-label" style="font-size:1rem;">No milestones set yet.</strong>
+          </div>
+          <button id="manage-stones-btn" class="btn btn-glass btn-sm">Manage Milestones →</button>
+        </div>
+      </section>
+      <!-- SPACE 2: MY TREE -->
+      <section id="view-tree" class="view hidden">
+        <div class="page-header">
+          <div>
+            <h1>My Tree</h1>
+            <p class="muted small">Growth happens through real actions, actually faced fears, and real-world evidence—never empty intentions.</p>
+          </div>
+          <div style="display:flex; gap:8px; flex-wrap:wrap;">
+            <button id="open-sunbeam-tree-btn" class="btn btn-sun btn-sm">✨ Sunbeam Clarity</button>
+            <button id="open-stones-tree-btn" class="btn btn-glass btn-sm">Milestones</button>
+            <button id="open-test-modal-btn" class="btn btn-moss btn-sm">+ Test an assumption</button>
+          </div>
+        </div>
+        <div class="glass" style="margin-bottom:18px;">
+          <div class="tree-canvas">
+            <div id="living-tree-svg" class="tree-svg" aria-label="Living Tree Progress Visualization"></div>
+            <h2 id="tree-stage-title" style="margin-top:8px;">Stage: Seed in Dark Soil</h2>
+            <p id="tree-stage-subtitle" class="muted small" style="max-width:500px; margin-top:4px;"></p>
+            <div class="grid-3" style="width:100%; margin-top:18px;">
+              <div class="soft-row" style="justify-content:center; flex-direction:column; align-items:center; margin:0;">
+                <strong id="tree-roots-count" style="font-size:1.35rem; color:var(--moss);">0</strong>
+                <span class="small muted">Roots (Real Actions)</span>
+              </div>
+              <div class="soft-row" style="justify-content:center; flex-direction:column; align-items:center; margin:0;">
+                <strong id="tree-trunk-count" style="font-size:1.35rem; color:var(--sun);">0</strong>
+                <span class="small muted">Trunk (Fears Faced)</span>
+              </div>
+              <div class="soft-row" style="justify-content:center; flex-direction:column; align-items:center; margin:0;">
+                <strong id="tree-canopy-count" style="font-size:1.35rem; color:var(--sky);">0</strong>
+                <span class="small muted">Leaves (Observed Tests)</span>
+              </div>
+            </div>
+          </div>
+        </div>
         <div class="grid-2">
-          <!-- TODAY'S UNBREAKABLE MOVE -->
-          <div class="card">
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
-              <h3>Today's One Unbreakable Move</h3>
-              <span id="today-status-badge" class="badge badge-accent">Ready to Build</span>
-            </div>
-            <div class="field">
-              <label for="today-move-input">What single concrete action makes your vision real today?</label>
-              <input id="today-move-input" type="text" placeholder="e.g., Message 3 potential users or sketch screen 1" />
-            </div>
-            <button id="save-today-move-btn" class="btn btn-secondary btn-sm" style="margin-bottom:14px;">Save / Update Move</button>
-
-            <div class="sprint-box">
-              <div>
-                <span class="muted small" style="display:block;">Focus Sprint Timer (Execute right now)</span>
-                <strong id="sprint-timer-display" class="mono" style="font-size:1.35rem;">25:00</strong>
-              </div>
-              <div style="display:flex; gap:6px; flex-wrap:wrap;">
-                <button id="sprint-preset-15" class="btn btn-secondary btn-sm" type="button">15m</button>
-                <button id="sprint-preset-25" class="btn btn-secondary btn-sm" type="button">25m</button>
-                <button id="sprint-start-btn" class="btn btn-primary btn-sm" type="button">Start</button>
-                <button id="sprint-pause-btn" class="btn btn-secondary btn-sm hidden" type="button">Pause</button>
-                <button id="sprint-reset-btn" class="btn btn-secondary btn-sm" type="button">Reset</button>
-              </div>
-            </div>
-
-            <div style="border-top:1px solid var(--border); padding-top:14px;">
-              <label for="proof-note-input">Log Today's Proof-of-Reality (When finished):</label>
-              <textarea id="proof-note-input" placeholder="What did you actually build, ship, test, or overcome today? Be concrete."></textarea>
-              <div style="display:flex; gap:8px; margin-top:10px; flex-wrap:wrap;">
-                <button id="complete-proof-btn" class="btn btn-primary">Complete &amp; Log Proof</button>
-                <button id="complete-share-btn" class="btn btn-secondary">Log + Share to #daily-proof</button>
-              </div>
-            </div>
+          <div class="glass">
+            <h3 style="margin-bottom:12px;">Growth Rings (Evidence History)</h3>
+            <div id="growth-rings-list" class="small muted">Record what happened today to add your first ring.</div>
           </div>
-
-          <!-- LIVE CHALLENGE & ENGINE SHORTCUTS -->
           <div style="display:flex; flex-direction:column; gap:16px;">
-            <div id="live-challenge-card" class="card hidden">
-              <span class="badge badge-green">FOUNDER'S ACTIVE DIRECTIVE</span>
-              <h3 id="live-challenge-title" style="margin-top:8px;"></h3>
-              <p id="live-challenge-body" class="small muted" style="margin-top:4px;"></p>
+            <div class="glass">
+              <h3 style="margin-bottom:12px;">Assumptions Being Tested</h3>
+              <div id="tree-tests-list" class="small muted">No assumptions tested yet.</div>
             </div>
-
-            <div class="card">
-              <h3 style="margin-bottom:10px;">Active Sprint Milestones</h3>
-              <div id="cmd-milestones-preview" class="small muted">Lock your North Star Vision to auto-generate starter milestones.</div>
-              <button class="btn btn-secondary btn-sm" style="margin-top:12px;" data-jump-engine="deconstructor">Open Reverse-Timeline Architect →</button>
+            <div class="glass">
+              <h3 style="margin-bottom:12px;">Fears Planned vs. Actually Faced</h3>
+              <div id="tree-fears-list" class="small muted">No fear resets planned yet.</div>
             </div>
-
-            <div class="card">
-              <h3 style="margin-bottom:6px;">Stress-Test &amp; Intelligence Suite</h3>
-              <p id="cmd-stress-summary" class="small muted" style="margin-bottom:12px;">Expose the hidden single point of failure in your plan and generate your personalized AI Co-Founder prompt.</p>
-              <button class="btn btn-primary btn-sm" data-jump-engine="stresstest">Run Reality Stress-Test →</button>
+            <div class="glass">
+              <h3 style="margin-bottom:10px;">Living Wisdom from Tavirah</h3>
+              <div id="live-wisdom-list" class="small muted">Timely guidance from Tavirah appears here automatically.</div>
             </div>
           </div>
         </div>
       </section>
-
-      <!-- VIEW 2: 6-ENGINE INTELLIGENCE SUITE -->
-      <section id="view-engines" class="view hidden">
+      <!-- SPACE 3: THE FOREST -->
+      <section id="view-forest" class="view hidden">
         <div class="page-header">
           <div>
-            <h1>Tavirah Intelligence Suite</h1>
-            <p class="muted small">Six interconnected engines engineered to turn ideas into undeniable reality.</p>
+            <h1>The Forest</h1>
+            <p class="muted small">Opt-in community connections, skill matching, and live builder circles.</p>
           </div>
         </div>
-
-        <div class="subtabs">
-          <button class="subtab active" data-engine="stresstest">1. Reality Stress-Tester</button>
-          <button class="subtab" data-engine="deconstructor">2. Reverse-Timeline</button>
-          <button class="subtab" data-engine="fearbreaker">3. Fear &amp; Friction Lab</button>
-          <button class="subtab" data-engine="skills">4. Skill-Gap Mapper</button>
-          <button class="subtab" data-engine="experiments">5. Experiment Lab</button>
-          <button class="subtab" data-engine="protocols">6. Live Protocols &amp; AI Prompt</button>
+        <div class="segmented">
+          <button id="forest-tab-mycelium" class="seg-btn active" type="button">🍄 Smart Matches</button>
+          <button id="forest-tab-circles" class="seg-btn" type="button">🔥 Living Circles (Chat)</button>
         </div>
-
-        <!-- ENGINE 1: REALITY STRESS-TESTER -->
-        <div id="engine-stresstest" class="engine-panel grid-2">
-          <div class="card">
-            <h3>Reality Stress-Tester</h3>
-            <p class="small muted" style="margin-bottom:14px;">Expose the single point of failure in your current plan before you waste months.</p>
-            <div class="field">
-              <label for="st-capital">Current Available Capital</label>
-              <select id="st-capital">
-                <option value="zero">$0 (Pure sweat &amp; free tools)</option>
-                <option value="micro">Tiny ($10 – $100)</option>
-                <option value="funded">Funded ($100+)</option>
-              </select>
+        <!-- PANEL A: OPT-IN MYCELIUM MATCHING -->
+        <div id="forest-mycelium">
+          <div class="glass" style="margin-bottom:16px;">
+            <h3 style="margin-bottom:10px;">Your Forest Visibility &amp; Skill Exchange</h3>
+            <label class="optin-row" for="forest-public-toggle">
+              <input id="forest-public-toggle" type="checkbox" />
+              <span class="small">
+                <strong>Share my goal &amp; skills in The Forest directory</strong>
+                <span class="muted" style="display:block; font-size:0.78rem;">When off, your profile is hidden and deleted from the public directory.</span>
+              </span>
+            </label>
+            <div class="grid-2">
+              <div class="field" style="margin:0;">
+                <label for="profile-offer">Skills or help you can offer</label>
+                <input id="profile-offer" type="text" placeholder="e.g., UI design, video editing, coding, marketing" />
+              </div>
+              <div class="field" style="margin:0;">
+                <label for="profile-need">What you are missing right now</label>
+                <input id="profile-need" type="text" placeholder="e.g., graphic design, first users, backend help" />
+              </div>
             </div>
-            <div class="field">
-              <label for="st-hours">Focused Hours Per Week</label>
-              <select id="st-hours">
-                <option value="low">Under 5 hrs/week (Survival mode)</option>
-                <option value="med">5 – 15 hrs/week (Consistent side-build)</option>
-                <option value="high">15+ hrs/week (All-in sprint)</option>
-              </select>
-            </div>
-            <div class="field">
-              <label for="st-stage">Current Reality Stage</label>
-              <select id="st-stage">
-                <option value="idea">Still only in my head</option>
-                <option value="started">Started, then stalled halfway</option>
-                <option value="built">Built something, nobody uses/buys it yet</option>
-              </select>
-            </div>
-            <div class="field">
-              <label for="st-fear">What honestly stops you most days?</label>
-              <select id="st-fear">
-                <option value="perfectionism">Waiting until it's "perfect" or ready</option>
-                <option value="judgment">Fear of judgment / background / identity</option>
-                <option value="clarity">Too many ideas, zero clear Step 1</option>
-                <option value="resources">Missing tools, money, or connections</option>
-              </select>
-            </div>
-            <button id="run-stresstest-btn" class="btn btn-primary btn-full">Analyze My Reality</button>
+            <button id="save-swap-profile-btn" class="btn btn-moss btn-sm" style="margin-top:12px;">Save Forest Settings</button>
           </div>
-          <div class="card" id="st-output-card">
-            <h3>Diagnostic Output</h3>
-            <div id="st-results" class="small muted" style="margin-top:10px;">Select your constraints on the left and click <strong>Analyze My Reality</strong> to reveal your hidden bottleneck and custom execution strategy.</div>
+          <div class="grid-3" style="margin-bottom:16px;">
+            <div class="glass">
+              <span class="pill pill-moss" style="margin-bottom:8px;">SKILL MATCH</span>
+              <h3 style="margin-bottom:10px;">Holds What You Need</h3>
+              <div id="mycelium-skills" class="small muted">Add what you need above to find exact skill matches.</div>
+            </div>
+            <div class="glass">
+              <span class="pill pill-sky" style="margin-bottom:8px;">EXPERIENCE MATCH</span>
+              <h3 style="margin-bottom:10px;">Walked Past Your Obstacle</h3>
+              <div id="mycelium-experience" class="small muted">Looking for builders who overcame your obstacle...</div>
+            </div>
+            <div class="glass">
+              <span class="pill pill-sun" style="margin-bottom:8px;">SUPPORT MATCH</span>
+              <h3 style="margin-bottom:10px;">Peers &amp; Saplings</h3>
+              <div id="mycelium-support" class="small muted">Builders you can encourage or walk alongside...</div>
+            </div>
+          </div>
+          <div class="glass">
+            <h3 style="margin-bottom:10px;">Public Directory (Opted-In Builders)</h3>
+            <label for="network-search">Search directory</label>
+            <input id="network-search" type="text" placeholder="Search goals, skills offered, or needs..." style="margin-bottom:14px;" />
+            <div id="builders-grid" class="grid-2"></div>
           </div>
         </div>
-
-        <!-- ENGINE 2: REVERSE-TIMELINE ARCHITECT -->
-        <div id="engine-deconstructor" class="engine-panel hidden grid-2">
-          <div class="card">
-            <h3>Reverse-Timeline Architect</h3>
-            <p class="small muted" style="margin-bottom:14px;">Engineer your macro vision backward into concrete sprint milestones.</p>
-            <div class="field">
-              <label for="ms-title">Milestone Title (Concrete Deliverable)</label>
-              <input id="ms-title" type="text" placeholder="e.g., Ship working prototype to first 10 people" />
+        <!-- PANEL B: LIVING CIRCLES -->
+        <div id="forest-circles" class="hidden">
+          <div class="chat-shell">
+            <div id="chat-rooms-list" class="chat-rooms"></div>
+            <div class="glass chat-box">
+              <div style="padding:13px 16px; border-bottom:1px solid var(--rim); display:flex; justify-content:space-between; align-items:center;">
+                <strong id="active-room-title">#todays-proof</strong>
+                <span id="active-room-desc" class="small muted">Share real outcomes today</span>
+              </div>
+              <div id="chat-messages" class="chat-messages"></div>
+              <form id="chat-form" class="chat-input-bar">
+                <input id="chat-input" type="text" aria-label="Chat message" maxlength="1000" placeholder="Speak to the circle..." required />
+                <button type="submit" class="btn btn-moss btn-sm">Send</button>
+              </form>
             </div>
-            <div class="field">
-              <label for="ms-days">Target Window (Days from now)</label>
-              <select id="ms-days">
-                <option value="3">3-Day Micro-Sprint</option>
-                <option value="7">7-Day Sprint</option>
-                <option value="14">14-Day Build</option>
-                <option value="30">30-Day Phase</option>
-              </select>
-            </div>
-            <button id="add-milestone-btn" class="btn btn-primary">Add Milestone</button>
-          </div>
-          <div class="card">
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
-              <h3>Sprint Completion</h3>
-              <span id="ms-percent" class="mono small">0%</span>
-            </div>
-            <div class="progress-track" style="margin-bottom:16px;"><div id="ms-progress-fill" class="progress-fill" style="width:0%;"></div></div>
-            <div id="milestones-list" class="small muted">No milestones yet.</div>
-          </div>
-        </div>
-
-        <!-- ENGINE 3: FRICTION & FEAR BREAKER LAB -->
-        <div id="engine-fearbreaker" class="engine-panel hidden grid-2">
-          <div class="card">
-            <h3>Fear &amp; Friction Breaker</h3>
-            <p class="small muted" style="margin-bottom:14px;">Use tactical inversion to crush paralysis, impostor syndrome, and perfectionism.</p>
-            <div class="field">
-              <label for="fb-protocol">Intervention Protocol</label>
-              <select id="fb-protocol">
-                <option value="fear-setting">Fear-Setting (Expose the worst case)</option>
-                <option value="pre-mortem">Pre-Mortem Inversion (Kill failure modes early)</option>
-                <option value="5min-rule">5-Minute Micro-Threshold (Bypass perfectionism)</option>
-              </select>
-            </div>
-            <div class="field">
-              <label for="fb-fear">What exact action are you avoiding right now?</label>
-              <input id="fb-fear" type="text" placeholder="e.g., Publishing my first post / pitching a partner" />
-            </div>
-            <div class="field">
-              <label for="fb-worst">What is the realistic worst-case if it fails—and how would you recover?</label>
-              <textarea id="fb-worst" placeholder="They say no or ignore it. Life continues, and I learn what to fix."></textarea>
-            </div>
-            <div class="field">
-              <label for="fb-micro">What is the 5-minute ugly version you can execute immediately?</label>
-              <input id="fb-micro" type="text" placeholder="e.g., Write a rough 3-line draft and send it" />
-            </div>
-            <button id="save-fearbreak-btn" class="btn btn-primary btn-full">Lock Intervention &amp; Conquer Block</button>
-          </div>
-          <div class="card">
-            <h3>Barriers Defeated Vault</h3>
-            <p class="small muted" style="margin-bottom:12px;">Every mental block you face head-on is recorded permanently. You can push any 5-min step straight into Today's Move.</p>
-            <div id="fearbreak-list" class="small muted">No barriers logged yet.</div>
-          </div>
-        </div>
-
-        <!-- ENGINE 4: SKILL-GAP & LEVERAGE MAPPER -->
-        <div id="engine-skills" class="engine-panel hidden grid-2">
-          <div class="card">
-            <h3>Skill-Gap &amp; Leverage Mapper</h3>
-            <p class="small muted" style="margin-bottom:14px;">Map the 20% of skills your vision needs—and flag what to trade for instead of doing alone.</p>
-            <div class="field">
-              <label for="sk-name">Skill Needed for Your Vision</label>
-              <input id="sk-name" type="text" placeholder="e.g., UI Design, Sales Outreach, Python, Video Editing" />
-            </div>
-            <div class="field">
-              <label for="sk-status">Current Leverage Status</label>
-              <select id="sk-status">
-                <option value="learning">Currently Learning (Need 20% fundamentals)</option>
-                <option value="mastered">Strong / Can Offer to Other Builders</option>
-                <option value="swap">Missing — Looking to Skill-Swap in Tavirah</option>
-              </select>
-            </div>
-            <button id="add-skill-btn" class="btn btn-primary">Map Skill</button>
-            <hr style="border:none; border-top:1px solid var(--border); margin:18px 0;" />
-            <div class="field">
-              <label for="profile-offer">What I Can Help Others With (Shown in Builder Network)</label>
-              <input id="profile-offer" type="text" placeholder="e.g., Content strategy, coding, feedback" />
-            </div>
-            <div class="field">
-              <label for="profile-need">What Help/Collaboration I'm Looking For</label>
-              <input id="profile-need" type="text" placeholder="e.g., Designer or accountability partner" />
-            </div>
-            <button id="save-swap-profile-btn" class="btn btn-secondary btn-sm">Update Network Card</button>
-          </div>
-          <div class="card">
-            <h3>My Vision Skill Matrix</h3>
-            <div id="skills-list" class="small muted" style="margin-top:12px;">No skills mapped yet.</div>
-          </div>
-        </div>
-
-        <!-- ENGINE 5: REAL-WORLD EXPERIMENT LAB -->
-        <div id="engine-experiments" class="engine-panel hidden grid-2">
-          <div class="card">
-            <h3>Real-World Experiment Lab</h3>
-            <p class="small muted" style="margin-bottom:14px;">Stop guessing in your head. Turn your vision into testable real-world hypotheses.</p>
-            <div class="field">
-              <label for="exp-hyp">Hypothesis ("If I do X, then Y will happen")</label>
-              <textarea id="exp-hyp" placeholder="e.g., If I share a free sample with 10 people today, at least 2 will ask for the full version."></textarea>
-            </div>
-            <div class="field">
-              <label for="exp-deadline">Test Deadline</label>
-              <input id="exp-deadline" type="date" />
-            </div>
-            <button id="add-exp-btn" class="btn btn-primary">Launch Experiment</button>
-          </div>
-          <div class="card">
-            <h3>Evidence Vault</h3>
-            <div id="experiments-list" class="small muted" style="margin-top:12px;">No experiments launched yet.</div>
-          </div>
-        </div>
-
-        <!-- ENGINE 6: LIVE PROTOCOLS & AI CO-FOUNDER SYNTHESIZER -->
-        <div id="engine-protocols" class="engine-panel hidden grid-2">
-          <div class="card">
-            <h3>Dynamic Protocols (Pushed Live by Tavirah)</h3>
-            <p class="small muted" style="margin-bottom:12px;">New execution frameworks added in real time as humanity's challenges evolve.</p>
-            <div id="live-protocols-list" class="small muted">No custom protocols pushed yet—check back soon!</div>
-          </div>
-          <div class="card">
-            <h3>Custom AI Co-Founder Context Generator</h3>
-            <p class="small muted" style="margin-bottom:10px;">Generates a hyper-specific prompt loaded with your real Vision, Stress-Test Bottleneck, and Active Experiments to paste into Claude/ChatGPT/Gemini.</p>
-            <textarea id="ai-synth-prompt" readonly style="min-height:200px; font-size:0.82rem;" class="mono"></textarea>
-            <button id="copy-synth-btn" class="btn btn-primary btn-sm" style="margin-top:10px;">Copy Personalized Mentor Prompt</button>
           </div>
         </div>
       </section>
-
-      <!-- VIEW 3: PROOF-OF-REALITY TIMELINE -->
-      <section id="view-timeline" class="view hidden">
-        <div class="page-header">
-          <div>
-            <h1>Proof-of-Reality Timeline</h1>
-            <p class="muted small">Your permanent chronological record showing you turned vision into reality.</p>
-          </div>
-        </div>
-        <div class="card">
-          <div id="proof-timeline-list" class="small muted">Complete your first Daily Move to lay Brick #1.</div>
-        </div>
-      </section>
-
-      <!-- VIEW 4: BUILDER NETWORK & SKILL EXCHANGE -->
-      <section id="view-network" class="view hidden">
-        <div class="page-header">
-          <div>
-            <h1>Builder Network</h1>
-            <p class="muted small">Connect by what people are actually building and willing to exchange—zero status gatekeeping.</p>
-          </div>
-        </div>
-        <div class="card" style="margin-bottom:16px;">
-          <input id="network-search" type="text" placeholder="Search visions, skills offered, or skills needed (e.g. 'design', 'app', 'education')..." />
-        </div>
-        <div id="builders-grid" class="grid-2"></div>
-      </section>
-
-      <!-- VIEW 5: REAL-TIME MULTI-ROOM CHAT -->
-      <section id="view-chat" class="view hidden">
-        <div class="page-header">
-          <div>
-            <h1>Live Builder Rooms</h1>
-            <p class="muted small">Real-time connection anchored around daily execution and mutual elevation.</p>
-          </div>
-        </div>
-        <div class="chat-shell">
-          <div id="chat-rooms-list" class="chat-rooms"></div>
-          <div class="chat-box">
-            <div style="padding:12px 16px; border-bottom:1px solid var(--border); display:flex; justify-content:space-between; align-items:center;">
-              <strong id="active-room-title">#daily-proof</strong>
-              <span id="active-room-desc" class="small muted">Share completed moves</span>
-            </div>
-            <div id="chat-messages" class="chat-messages"></div>
-            <form id="chat-form" class="chat-input-bar">
-              <input id="chat-input" type="text" maxlength="1000" placeholder="Write to the room..." required />
-              <button type="submit" class="btn btn-primary btn-sm">Send</button>
-            </form>
-          </div>
-        </div>
-      </section>
-
-      <!-- VIEW 6: SECRET FOUNDER-ONLY COCKPIT -->
+      <!-- SPACE 4: FOUNDER COCKPIT -->
       <section id="view-founder" class="view hidden">
         <div class="page-header">
           <div>
-            <span class="badge badge-accent">FOUNDER CLEARANCE ONLY</span>
+            <span class="pill pill-sun">FOUNDER CLEARANCE</span>
             <h1 style="margin-top:6px;">Founder Intelligence Cockpit</h1>
-            <p class="muted small">Real-time ecosystem patterns, live no-code upgrades, and your AI Architecture Bridge.</p>
+            <p class="muted small">Aggregated forest health, reported messages, and live no-code upgrades.</p>
           </div>
-          <button id="refresh-founder-btn" class="btn btn-secondary btn-sm">Refresh Live Telemetry</button>
+          <button id="refresh-founder-btn" class="btn btn-glass btn-sm">Refresh Telemetry</button>
         </div>
-
         <div class="grid-3" style="margin-bottom:18px;">
-          <div class="card"><span class="muted small">Total Builders</span><div class="stat-num" id="f-total-users">0</div></div>
-          <div class="card"><span class="muted small">Total Reality Proofs</span><div class="stat-num" id="f-total-proofs">0</div></div>
-          <div class="card"><span class="muted small">#1 Ecosystem Blocker</span><div class="stat-num" style="font-size:1.2rem; margin-top:6px;" id="f-top-blocker">—</div></div>
+          <div class="glass"><span class="muted small">Registered Accounts</span><div style="font-size:1.9rem; font-weight:700;" id="f-total-users">0</div></div>
+          <div class="glass"><span class="muted small">Real Actions Logged</span><div style="font-size:1.9rem; font-weight:700;" id="f-total-proofs">0</div></div>
+          <div class="glass"><span class="muted small">#1 Reported Obstacle</span><div style="font-size:1.2rem; font-weight:700; margin-top:6px;" id="f-top-blocker">—</div></div>
         </div>
-
         <div class="grid-2" style="margin-bottom:18px;">
-          <!-- PUSH LIVE UPGRADES WITHOUT REDEPLOYING -->
-          <div class="card">
-            <h3>Live App Upgrader (No-Code Push)</h3>
-            <p class="small muted" style="margin-bottom:12px;">Push announcements, directives, new protocols, or chat rooms live to every user instantly.</p>
+          <div class="glass">
+            <h3>Live Forest Upgrader (No-Code Push)</h3>
+            <p class="small muted" style="margin-bottom:12px;">Send announcements or Living Wisdom straight to users instantly.</p>
             <div class="field">
-              <label for="f-ann-title">Global Announcement Title</label>
-              <input id="f-ann-title" type="text" placeholder="e.g., Week 1 Reality Sprint Begins" />
+              <label for="f-ann-title">Announcement Title</label>
+              <input id="f-ann-title" type="text" placeholder="e.g., Welcome to Tavirah v2.1" />
             </div>
             <div class="field">
-              <label for="f-ann-body">Announcement Message</label>
-              <textarea id="f-ann-body" placeholder="Message visible across all users' Command Centers..."></textarea>
+              <label for="f-ann-body">Message</label>
+              <textarea id="f-ann-body" placeholder="Message visible across the forest..."></textarea>
             </div>
-            <button id="f-push-ann-btn" class="btn btn-primary btn-sm">Push Global Announcement</button>
-
-            <hr style="border:none; border-top:1px solid var(--border); margin:16px 0;" />
+            <button id="f-push-ann-btn" class="btn btn-sun btn-sm">Push Announcement Live</button>
+            <hr style="border:none; border-top:1px solid var(--rim); margin:16px 0;" />
             <div class="field">
-              <label for="f-proto-title">Push New Live Protocol to Engine #6</label>
-              <input id="f-proto-title" type="text" placeholder="Protocol Title (e.g., 48-Hour Zero-Capital Test)" />
+              <label for="f-proto-title">Push Living Wisdom to "My Tree"</label>
+              <input id="f-proto-title" type="text" placeholder="Wisdom Title" />
             </div>
             <div class="field">
-              <label for="f-proto-steps">Actionable Steps</label>
-              <textarea id="f-proto-steps" placeholder="Step 1... Step 2... Step 3..."></textarea>
+              <label for="f-proto-steps">Guidance Steps</label>
+              <textarea id="f-proto-steps" placeholder="Step 1... Step 2..."></textarea>
             </div>
-            <button id="f-push-proto-btn" class="btn btn-secondary btn-sm">Push Protocol Live</button>
+            <button id="f-push-proto-btn" class="btn btn-moss btn-sm">Push Living Wisdom</button>
           </div>
-
-          <!-- 1-CLICK AI ARCHITECTURE BRIDGE -->
-          <div class="card">
-            <h3>AI Upgrade Bridge &amp; Autonomous Hook</h3>
+          <div class="glass">
+            <h3>Founder Upgrade Brief</h3>
             <p class="small muted" style="margin-bottom:10px;">
-              Packages your real database telemetry into a diagnostic brief. Paste it to your internet-connected AI partner (Claude/Gemini) to ask: <em>"Based on user bottlenecks &amp; new world tools today, what should we upgrade?"</em>
+              Aggregates anonymized obstacle patterns &amp; reported realities so you can plan future upgrades cleanly.
             </p>
-            <textarea id="f-ai-brief" readonly style="min-height:190px; font-size:0.8rem;" class="mono"></textarea>
-            <button id="f-copy-brief-btn" class="btn btn-primary btn-sm" style="margin-top:10px;">Copy Live Founder Brief</button>
-
-            <div style="margin-top:16px; padding:12px; border-radius:9px; border:1px dashed var(--border); background:var(--bg);">
-              <strong class="small">Future Autonomous API Slot</strong>
-              <p class="small muted" style="margin-top:4px;">Status: <span class="mono" style="color:var(--accent);">STANDBY ($0 Static Mode)</span>. Ready for Cloud Function + LLM Agent Key plug-in when scaling to company stage.</p>
+            <textarea id="f-ai-brief" aria-label="Founder Upgrade Brief" readonly style="min-height:190px; font-size:0.82rem;"></textarea>
+            <button id="f-copy-brief-btn" class="btn btn-sun btn-sm" style="margin-top:10px;">Copy Founder Brief</button>
+            <div style="margin-top:14px; padding:12px; border-radius:12px; border:1px dashed var(--rim); background:rgba(0,0,0,0.28);">
+              <strong class="small">Community Moderation Reports</strong>
+              <div id="f-reports-list" class="small muted" style="margin-top:6px;">No reports submitted.</div>
             </div>
           </div>
         </div>
-
-        <div class="card">
-          <h3>Active Builder Telemetry Feed</h3>
-          <div id="f-users-table" class="small muted" style="margin-top:10px;">Click "Refresh Live Telemetry" to inspect ecosystem patterns.</div>
+        <div class="glass">
+          <h3>Builder Progress Summary</h3>
+          <div id="f-users-table" class="small muted" style="margin-top:10px;">Click "Refresh Telemetry" to inspect ecosystem patterns.</div>
         </div>
       </section>
     </main>
   </div>
-
-  <!-- NORTH STAR VISION ONBOARDING / EDIT MODAL -->
-  <div id="vision-modal" class="modal-backdrop hidden">
-    <div class="card modal-card">
-      <h2>Define Your North Star Vision</h2>
-      <p class="small muted" style="margin:6px 0 16px;">Tavirah is built to make this real. Be specific about what you want to bring into the world.</p>
+  <!-- ZEN FOCUS SANCTUARY -->
+  <div id="focus-overlay" class="focus-overlay hidden" role="dialog" aria-modal="true" aria-label="Focus Sanctuary">
+    <div class="focus-inner">
+      <span id="focus-vision-tag" class="pill pill-sun">Focusing on your goal</span>
+      <h2 id="focus-step-title" style="margin-top:18px; font-size:1.7rem; line-height:1.35;"></h2>
+      <div id="focus-timer-display" class="focus-clock">25:00</div>
+      <div style="display:flex; gap:10px; justify-content:center; flex-wrap:wrap; margin-bottom:20px;">
+        <button id="focus-15-btn" class="btn btn-glass btn-sm" type="button">15 min</button>
+        <button id="focus-25-btn" class="btn btn-glass btn-sm" type="button">25 min</button>
+        <button id="focus-toggle-btn" class="btn btn-sun" type="button">Start Quiet Timer</button>
+      </div>
+      <div style="display:flex; gap:10px; justify-content:center; flex-wrap:wrap;">
+        <button id="focus-done-btn" class="btn btn-moss" type="button">I Finished This Step ✓</button>
+        <button id="focus-exit-btn" class="btn btn-glass" type="button">Leave Focus</button>
+      </div>
+    </div>
+  </div>
+  <!-- OBSERVE -> UPDATE: RECORD WHAT HAPPENED MODAL -->
+  <div id="complete-modal" class="modal-backdrop hidden" role="dialog" aria-modal="true" aria-label="Record What Happened">
+    <div class="glass modal-card">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+        <h3>Record what happened</h3>
+        <button id="close-complete-btn" class="btn btn-glass btn-sm" type="button">Cancel</button>
+      </div>
+      <p class="small muted" style="margin-bottom:12px;">Reality teaches what to do next. Tell Tavirah honestly what happened—and it will adapt your next step.</p>
+      <div class="field">
+        <label for="proof-outcome">What actually happened?</label>
+        <select id="proof-outcome">
+          <option value="worked">It worked — people engaged or I made tangible progress</option>
+          <option value="no_reach">Nobody saw it or replied yet (reach issue)</option>
+          <option value="no_need">People saw it, but didn't care or feel the urgency</option>
+          <option value="friction_cost">People wanted it, but cost, trust, or confusion blocked them</option>
+          <option value="blocked_self">I stalled, felt fear, or couldn't finish today</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="proof-note-input">What did you observe or learn?</label>
+        <textarea id="proof-note-input" placeholder="e.g., Messaged 5 students; 2 replied saying onboarding was confusing..."></textarea>
+      </div>
+      <div style="display:flex; gap:10px; flex-wrap:wrap;">
+        <button id="complete-only-btn" class="btn btn-moss" type="button">Save &amp; Adapt My Next Step ✓</button>
+        <button id="complete-share-btn" class="btn btn-sun" type="button">Save + Share to #todays-proof</button>
+      </div>
+    </div>
+  </div>
+  <!-- ADAPTIVE NEXT DECISION SUGGESTION MODAL (APPEARS AFTER OBSERVING REALITY) -->
+  <div id="update-decision-modal" class="modal-backdrop hidden" role="dialog" aria-modal="true" aria-label="Updated Next Decision">
+    <div class="glass modal-card">
+      <span class="pill pill-sun" style="margin-bottom:8px;">OBSERVE → UPDATE</span>
+      <h3 id="upd-headline">Based on what just happened...</h3>
+      <p id="upd-reason" class="small muted" style="margin:8px 0 14px;"></p>
+      <div class="soft-row" style="flex-direction:column;">
+        <span class="small muted">Recommended Next Step</span>
+        <strong id="upd-next-step"></strong>
+      </div>
+      <div style="display:flex; gap:10px; flex-wrap:wrap; margin-top:14px;">
+        <button id="upd-accept-btn" class="btn btn-moss" type="button">Set This as My Next Step ✓</button>
+        <button id="upd-keep-btn" class="btn btn-glass" type="button">Keep Current Step</button>
+      </div>
+    </div>
+  </div>
+  <!-- THE SUNBEAM (SEMANTIC SOCRATIC CLARITY STUDIO) -->
+  <div id="sunbeam-modal" class="modal-backdrop hidden" role="dialog" aria-modal="true" aria-label="Sunbeam Clarity Studio">
+    <div class="glass modal-card">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+        <span class="pill pill-sun">✨ THE SUNBEAM • ADAPTIVE CLARITY</span>
+        <button id="close-sunbeam-btn" class="btn btn-glass btn-sm" type="button">Close</button>
+      </div>
+      <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:12px;">
+        <span id="sb-archetype-badge" class="pill pill-moss">Path: —</span>
+        <span id="sb-weather-badge" class="pill">Obstacle: —</span>
+      </div>
+      <h3 id="sb-question" style="line-height:1.4; margin-bottom:10px;"></h3>
+      <p id="sb-hint" class="small muted" style="margin-bottom:12px;"></p>
+      <div class="field">
+        <label for="sb-answer">Your honest answer</label>
+        <textarea id="sb-answer" placeholder="Type what is actually happening (e.g., 'I have no internet or money today' or '20 users get confused signing up')..."></textarea>
+      </div>
+      <button id="sb-synthesize-btn" class="btn btn-sun btn-full" type="button">Diagnose &amp; Shape My Next Step</button>
+      <div id="sb-output-panel" class="hidden" style="margin-top:16px; padding-top:16px; border-top:1px solid var(--rim);">
+        <span id="sb-detected-signal" class="pill pill-sky" style="margin-bottom:8px;">SIGNAL DETECTED</span>
+        <p id="sb-diagnosis" class="small muted" style="margin-bottom:10px;"></p>
+        <div class="soft-row" style="flex-direction:column;">
+          <span class="small muted">Tailored Step for Today</span>
+          <strong id="sb-today-step"></strong>
+        </div>
+        <div class="soft-row" style="flex-direction:column;">
+          <span class="small muted">Assumption Test to Run</span>
+          <span id="sb-seed-test" class="small"></span>
+        </div>
+        <div class="soft-row" style="flex-direction:column;">
+          <span class="small muted">Next Milestone</span>
+          <span id="sb-stone" class="small"></span>
+        </div>
+        <button id="sb-apply-btn" class="btn btn-moss btn-full" type="button">Apply to My Today ✓</button>
+      </div>
+    </div>
+  </div>
+  <!-- HIT AN OBSTACLE? PROGRESSIVE DISCLOSURE SHEET -->
+  <div id="rock-modal" class="modal-backdrop hidden" role="dialog" aria-modal="true" aria-label="Obstacle Support">
+    <div class="glass modal-card">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+        <h3>What obstacle hit today?</h3>
+        <button id="close-rock-btn" class="btn btn-glass btn-sm" type="button">Close</button>
+      </div>
+      <p class="small muted" style="margin-bottom:14px;">Different obstacles call for different responses. Pick what's blocking you:</p>
+      <div id="rock-choices" class="barrier-grid">
+        <button type="button" class="barrier-card rock-pick" data-rock="fear">🌑 Fear, doubt, or waiting until it feels "perfect"</button>
+        <button type="button" class="barrier-card rock-pick" data-rock="phototropism">🪨 Lost clarity, $0 resources, or situation shifted</button>
+        <button type="button" class="barrier-card rock-pick" data-rock="test">🌱 I want to test an assumption in real life</button>
+        <button type="button" class="barrier-card rock-pick" data-rock="shade">🍄 Carrying this alone—ask The Forest for help</button>
+      </div>
+      <div id="rock-fear-panel" class="rock-panel hidden" style="padding-top:12px; border-top:1px solid var(--rim);">
+        <h4 style="margin-bottom:8px;">Clear the Fog (Intention → Real Action)</h4>
+        <div class="field">
+          <label for="fb-protocol">Choose your approach</label>
+          <select id="fb-protocol">
+            <option value="fear-setting">Expose the Worst Case</option>
+            <option value="5min-rule">5-Minute Ugly Version</option>
+            <option value="pre-mortem">Turn Failure Into Fuel</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="fb-fear">What exact action are you avoiding?</label>
+          <input id="fb-fear" type="text" placeholder="e.g., Sending my first message / posting my draft" />
+        </div>
+        <div class="field">
+          <label for="fb-worst">What is the realistic worst case—and how will you recover?</label>
+          <textarea id="fb-worst" placeholder="Someone ignores me. Nothing breaks, and I learn what to fix."></textarea>
+        </div>
+        <div class="field">
+          <label for="fb-micro">What tiny 5-minute version will you actually do today?</label>
+          <input id="fb-micro" type="text" placeholder="e.g., Write 3 messy lines and hit send" />
+        </div>
+        <button id="save-fearbreak-btn" class="btn btn-moss btn-full" type="button">Set 5-Min Step as Today's Focus</button>
+      </div>
+      <div id="rock-phototropism-panel" class="rock-panel hidden" style="padding-top:12px; border-top:1px solid var(--rim);">
+        <h4 style="margin-bottom:8px;">Ground Check (Situational Diagnosis)</h4>
+        <div class="grid-2">
+          <div class="field">
+            <label for="st-capital">Resources right now</label>
+            <select id="st-capital">
+              <option value="zero">Starting at $0</option>
+              <option value="micro">A little to test</option>
+              <option value="funded">Ready to invest</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="st-hours">Time per week</label>
+            <select id="st-hours">
+              <option value="low">Under 5 hrs/wk</option>
+              <option value="med">5–15 hrs/wk</option>
+              <option value="high">15+ hrs/wk</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="st-stage">Current stage</label>
+            <select id="st-stage">
+              <option value="idea">Only in my mind</option>
+              <option value="started">Started, then stalled</option>
+              <option value="built">Built, needs real users</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="st-fear">Main friction</label>
+            <select id="st-fear">
+              <option value="clarity">Need clear next step</option>
+              <option value="perfectionism">Waiting for perfection</option>
+              <option value="judgment">Fear of judgment / status</option>
+              <option value="resources">Missing money or tools</option>
+            </select>
+          </div>
+        </div>
+        <button id="run-stresstest-btn" class="btn btn-sun btn-full" type="button">Diagnose My Situation</button>
+        <div id="st-results" class="small muted" style="margin-top:12px;"></div>
+      </div>
+      <div id="rock-test-panel" class="rock-panel hidden" style="padding-top:12px; border-top:1px solid var(--rim);">
+        <h4 style="margin-bottom:8px;">Test an Assumption in Real Life</h4>
+        <div class="field">
+          <label for="exp-hyp">What assumption are you testing? ("If I do X, then Y...")</label>
+          <textarea id="exp-hyp" placeholder="e.g., If I ask 5 people about this problem today, at least 2 will say they struggle with it."></textarea>
+        </div>
+        <div class="field">
+          <label for="exp-deadline">Test Deadline</label>
+          <input id="exp-deadline" type="date" />
+        </div>
+        <button id="add-exp-btn" class="btn btn-moss btn-full" type="button">Start Test (Counts on Tree Once Observed)</button>
+      </div>
+      <div id="rock-shade-panel" class="rock-panel hidden" style="padding-top:12px; border-top:1px solid var(--rim);">
+        <h4 style="margin-bottom:8px;">Ask The Forest (#in-the-shade)</h4>
+        <div class="field">
+          <label for="sos-room-text">Describe your exact block in 1 honest sentence:</label>
+          <input id="sos-room-text" type="text" placeholder="e.g., I don't know how to reach my first 3 users with $0..." />
+        </div>
+        <div style="display:flex; gap:8px; flex-wrap:wrap;">
+          <button id="send-sos-btn" class="btn btn-clay" type="button">Send to #in-the-shade</button>
+          <button id="jump-mycelium-btn" class="btn btn-moss" type="button">Find Skill Matches</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <!-- MILESTONES MODAL (REAL DUE DATES) -->
+  <div id="stones-modal" class="modal-backdrop hidden" role="dialog" aria-modal="true" aria-label="Milestones">
+    <div class="glass modal-card">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+        <h3>Milestones</h3>
+        <button id="close-stones-btn" class="btn btn-glass btn-sm" type="button">Done</button>
+      </div>
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+        <span class="small muted">Path Progress</span>
+        <span id="ms-percent" class="small" style="font-weight:700;">0%</span>
+      </div>
+      <div class="progress-track" style="margin-bottom:16px;"><div id="ms-progress-fill" class="progress-fill" style="width:0%;"></div></div>
+      <div style="display:flex; gap:8px; margin-bottom:14px; flex-wrap:wrap;">
+        <input id="ms-title" type="text" aria-label="Milestone title" placeholder="Add a concrete milestone..." style="flex:1; min-width:190px;" />
+        <input id="ms-due-date" type="date" aria-label="Milestone due date" style="width:155px;" />
+        <button id="add-milestone-btn" class="btn btn-moss btn-sm" type="button">Add</button>
+      </div>
+      <div id="milestones-list" class="small muted">No milestones yet.</div>
+    </div>
+  </div>
+  <!-- EDIT GOAL MODAL -->
+  <div id="vision-modal" class="modal-backdrop hidden" role="dialog" aria-modal="true" aria-label="Edit Goal">
+    <div class="glass modal-card">
+      <h2>Edit Your Goal</h2>
+      <p class="small muted" style="margin:6px 0 16px;">Keep the headline crisp; put the full story below.</p>
       <form id="vision-form">
         <div class="field">
-          <label for="v-title">What reality are you building?</label>
-          <input id="v-title" type="text" required placeholder="e.g., Launch an affordable local logistics app" />
+          <label for="v-title">Goal Headline (max 70 characters)</label>
+          <input id="v-title" type="text" maxlength="70" required />
         </div>
         <div class="field">
-          <label for="v-why">Why does this matter to you / humanity?</label>
-          <textarea id="v-why" required placeholder="Who does it help and what changes if you succeed?"></textarea>
+          <label for="v-why">Why this matters</label>
+          <textarea id="v-why" required></textarea>
         </div>
         <div class="field">
-          <label for="v-barrier">Primary Barrier Stopping You Right Now</label>
+          <label for="v-barrier">Main obstacle</label>
           <select id="v-barrier">
-            <option value="clarity">Lack of Clarity / Don't know where to start</option>
-            <option value="fear">Fear, Self-Doubt, or Perfectionism</option>
-            <option value="capital">Zero Capital / Limited Resources</option>
-            <option value="identity">Circumstance, Background, or Identity Boxes</option>
-            <option value="isolation">Building Completely Alone / Isolation</option>
+            <option value="clarity">Finding Clarity</option>
+            <option value="fear">Fear or Perfectionism</option>
+            <option value="capital">Zero Capital or Tools</option>
+            <option value="identity">Circumstance or Identity Boxes</option>
+            <option value="isolation">Walking Alone</option>
           </select>
         </div>
         <div style="display:flex; gap:10px; justify-content:flex-end;">
-          <button type="button" id="close-vision-modal" class="btn btn-secondary">Cancel</button>
-          <button type="submit" class="btn btn-primary">Lock In Vision</button>
+          <button type="button" id="close-vision-modal" class="btn btn-glass">Cancel</button>
+          <button type="submit" class="btn btn-sun">Save Goal</button>
         </div>
       </form>
     </div>
   </div>
-
-  <!-- TACTICAL UNBLOCK SOS MODAL -->
-  <div id="unblock-modal" class="modal-backdrop hidden">
-    <div class="card modal-card">
-      <div style="display:flex; justify-content:space-between; align-items:center;">
-        <h3>60-Second Tactical Unblock</h3>
-        <button id="close-unblock-btn" class="btn btn-secondary btn-sm">Close</button>
-      </div>
-      <p class="small muted" style="margin:6px 0 14px;">Tap what is freezing your momentum right now:</p>
-      <div class="grid-2" style="margin-bottom:14px;">
-        <button class="btn btn-secondary btn-sm unblock-choice" data-block="fear">😰 Fear / Perfectionism</button>
-        <button class="btn btn-secondary btn-sm unblock-choice" data-block="clarity">🌫️ Overwhelmed / Foggy</button>
-        <button class="btn btn-secondary btn-sm unblock-choice" data-block="capital">🪙 Zero Capital / Tools</button>
-        <button class="btn btn-secondary btn-sm unblock-choice" data-block="isolation">🧱 Tired / Feeling Alone</button>
-      </div>
-      <div id="unblock-advice-box" class="card hidden" style="background:var(--bg); margin-bottom:12px;">
-        <p id="unblock-advice-text" class="small"></p>
-      </div>
-      <div style="border-top:1px solid var(--border); padding-top:12px;">
-        <label for="sos-room-text">Need real human eyes on your block? Ping #unstuck-sos:</label>
-        <div style="display:flex; gap:8px;">
-          <input id="sos-room-text" type="text" placeholder="Describe your exact roadblock in 1 sentence..." />
-          <button id="send-sos-btn" class="btn btn-danger btn-sm">Ping Room</button>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <div id="toast" class="toast hidden"></div>
-
+  <div id="toast" class="toast hidden" role="status" aria-live="polite"></div>
   <script type="module" src="./app.js"></script>
 </body>
 </html>
